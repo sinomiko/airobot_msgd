@@ -29,7 +29,7 @@ $(PACKAGE) : $(objs)
 
 $(objs) : $(OBJDIR)/%.o: %.cpp
 	@mkdir -p $(OBJDIR)
-	$(CC) -MMD -c $(CCFLAGS) $(EXTRAFLAGS) $< -o $@ 
+	$(CXX) -MMD -c $(CXXFLAGS) $(EXTRAFLAGS) $< -o $@ 
 
 #check header for obj reconstruction
 -include $(OBJDIR)/*.d
