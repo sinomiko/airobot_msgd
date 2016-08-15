@@ -10,7 +10,7 @@ using namespace boost::gregorian;
 namespace airobot {
 
 class connection
-: public std::enable_shared_from_this<connection> {
+{
 
 public:
     connection(const connection&) = delete;
@@ -25,10 +25,14 @@ public:
 private:
     // 异步IO
     void do_read();
-    void do_wirte();
+    void do_write();
+
+    void read_handler(const boost::system::error_code& ec, std::size_t bytes_transferred);
+    void write_handler(const boost::system::error_code &ec, std::size_t bytes_transferred); 
 
     boost::shared_ptr<ip::tcp::socket> p_sock_;
     ptime touch_time_;
+    boost::shared_ptr<std::vector<char> > p_buffer_;
 };
 
 }

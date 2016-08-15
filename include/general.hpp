@@ -14,6 +14,8 @@ using namespace boost::asio;
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp> 
 
+#include <boost/bind.hpp>
+
 namespace airobot {
 
 typedef boost::shared_ptr<ip::tcp::socket> socket_ptr;

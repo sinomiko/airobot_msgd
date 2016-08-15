@@ -22,10 +22,16 @@ objs = $(srcs:%.cpp=$(OBJDIR)/%.o)
 all : $(PACKAGE)
 .PHONY : all
 
+ifeq ($(DEBUG),1)
+TARGET_DIR=Debug
+else
+TARGET_DIR=Release
+endif
+
 $(PACKAGE) : $(objs) 
 	- @mkdir -p $(OBJDIR)
 	$(CXX) -c $(CXXFLAGS) $(EXTRAFLAGS) $(SRC_DIRS)/main.cpp -o $(OBJDIR)/main.o
-	$(CXX) $(OBJDIR)/main.o $^ $(CXXFLAGS) $(EXTRAFLAGS) -o $@
+	$(CXX) $(OBJDIR)/main.o $^ $(CXXFLAGS) $(EXTRAFLAGS) -o $(TARGET_DIR)/$(PACKAGE)
 
 $(objs) : $(OBJDIR)/%.o: %.cpp
 	@mkdir -p $(OBJDIR)
