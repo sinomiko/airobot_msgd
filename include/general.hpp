@@ -6,6 +6,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 #include <string>
+using std::string;
 
 
 #include <boost/asio.hpp>

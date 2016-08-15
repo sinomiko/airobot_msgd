@@ -1,8 +1,13 @@
 #include <iostream>
 
 #include "http_server.hpp"
+#include "reply.hpp"
 
 namespace airobot {
+
+std::string reply::fixed_reply_error;
+std::string reply::fixed_reply_ok;
+
 
 http_server::http_server(const std::string& address, unsigned short port,
                     const std::string& doc_root) :
@@ -17,8 +22,15 @@ http_server::http_server(const std::string& address, unsigned short port,
 }
 
 /// Run the server's io_service loop.
+
 void http_server::run()
 {
+    string err =  "<html>"
+                  "<head><title>Internal Server Error</title></head>"
+                  "<body><h1>500 Internal Server Error</h1></body>"
+                  "</html>";
+    reply::fixed_reply_error = reply::reply_generate(err); 
+    reply::fixed_reply_ok = reply::reply_generate("{}");
     io_service_.run();
 }
 

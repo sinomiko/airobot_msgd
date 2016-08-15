@@ -35,7 +35,8 @@ private:
     void do_accept();
     void accept_handler(const boost::system::error_code& ec, socket_ptr ptr);
 
-    std::set<connection_ptr> connections_;
+    std::set<connection_ptr> connections_; // map latter
+    //std::map<unsigned long long session_id, connection_ptr> connections_;
 };
 
 } // END NAMESPACE

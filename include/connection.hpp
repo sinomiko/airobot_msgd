@@ -7,9 +7,11 @@
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
+#include <boost/enable_shared_from_this.hpp>
+
 namespace airobot {
 
-class connection
+class connection : public boost::enable_shared_from_this<connection>
 {
 
 public:
@@ -33,6 +35,7 @@ private:
     boost::shared_ptr<ip::tcp::socket> p_sock_;
     ptime touch_time_;
     boost::shared_ptr<std::vector<char> > p_buffer_;
+    boost::shared_ptr<std::vector<char> > p_write_;
 };
 
 }
