@@ -1,15 +1,8 @@
 #include <iostream>
 
 #include "http_server.hpp"
-#include <boost/shared_ptr.hpp>
 
 namespace airobot {
-
-
-using std::cout;
-using std::cerr;
-using std::endl;
-
 
 http_server::http_server(const std::string& address, unsigned short port,
                     const std::string& doc_root) :
@@ -47,6 +40,10 @@ void http_server::accept_handler(const boost::system::error_code& ec, socket_ptr
 
     cout << "Client Info: " << p_sock->remote_endpoint().address() <<
         p_sock->remote_endpoint().port() << endl;
+
+    connection_ptr new_c = boost::make_shared<connection>(p_sock);
+    connections_.insert(new_c);
+    new_c->start();
 
     // 再次启动接收异步请求
     do_accept();

@@ -1,9 +1,11 @@
 #ifndef _HTTP_SERVER_HPP
 #define _HTTP_SERVER_HPP
 
-#include <string>
-#include <boost/asio.hpp>
+#include "general.hpp"
+#include "connection.hpp"
+
 #include <boost/bind.hpp>
+#include <set>
 
 namespace airobot {
 
@@ -12,8 +14,6 @@ using namespace boost::asio;
 class http_server
 {
 public:
-    typedef boost::shared_ptr<ip::tcp::socket> socket_ptr;
-
     //不准拷贝、赋值
     http_server(const http_server&) = delete;
     http_server& operator=(const http_server&) = delete;
@@ -34,6 +34,8 @@ private:
 
     void do_accept();
     void accept_handler(const boost::system::error_code& ec, socket_ptr ptr);
+
+    std::set<connection_ptr> connections_;
 };
 
 } // END NAMESPACE
