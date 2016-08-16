@@ -1,5 +1,6 @@
 #include "connection.hpp"
 #include "reply.hpp"
+#include "http_server.hpp"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 using namespace boost::posix_time;
@@ -7,10 +8,12 @@ using namespace boost::gregorian;
 
 namespace airobot {
 
-connection::connection(boost::shared_ptr<ip::tcp::socket> p_sock):
+connection::connection(boost::shared_ptr<ip::tcp::socket> p_sock,
+                       http_server& server):
     touch_time_(second_clock::local_time()), 
     p_sock_(p_sock),
-    parser_()
+    parser_(),
+    server_(server)
 {
     p_buffer_ = boost::make_shared<std::vector<char> >(16*1024, 0);
     p_write_  = boost::make_shared<std::vector<char> >(16*1024, 0); 
@@ -54,7 +57,11 @@ void connection::read_handler(const boost::system::error_code& ec, size_t bytes_
         // read more
         string ret = reply::reply_generate(string(&(*p_buffer_)[0]), http_proto::status::ok); 
         //string ret = reply::reply_generate("<html><body><p>Hello World!</p></body></html>");
-        memcpy(p_write_->data(), ret.c_str(), ret.size()+1);
+        if( parser_.parse_request(p_buffer_->data()) )
+        {
+            std::cout << "PARSE OK" << std::endl;
+        }
+        memcpy(p_write_->data(), ret.c_str(), ret.size() + 1);
 
         do_write();
 

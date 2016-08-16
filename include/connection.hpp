@@ -13,6 +13,8 @@ using namespace boost::gregorian;
 
 namespace airobot {
 
+class http_server;
+
 class connection : public boost::enable_shared_from_this<connection>
 {
 
@@ -21,7 +23,7 @@ public:
     connection& operator=(const connection&) = delete;
 
     /// Construct a connection with the given socket.
-    explicit connection(boost::shared_ptr<ip::tcp::socket> p_sock);
+    explicit connection(boost::shared_ptr<ip::tcp::socket> p_sock, http_server& server);
 
     void start();
     void stop();
@@ -39,6 +41,8 @@ private:
     boost::shared_ptr<std::vector<char> > p_buffer_;
     boost::shared_ptr<std::vector<char> > p_write_;
     http_parser parser_;
+
+    http_server& server_;
 };
 
 }

@@ -53,7 +53,7 @@ void http_server::accept_handler(const boost::system::error_code& ec, socket_ptr
     cout << "Client Info: " << p_sock->remote_endpoint().address() << "/" <<
         p_sock->remote_endpoint().port() << endl;
 
-    connection_ptr new_c = boost::make_shared<connection>(p_sock);
+    connection_ptr new_c = boost::make_shared<connection>(p_sock, *this);
     connections_.insert(new_c);
     new_c->start();
 
