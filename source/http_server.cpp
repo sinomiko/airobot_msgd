@@ -13,7 +13,8 @@ http_server::http_server(const std::string& address, unsigned short port,
                     const std::string& doc_root) :
     io_service_(), 
     ep_(ip::tcp::endpoint(ip::address::from_string(address), port)),
-    acceptor_(io_service_, ep_)
+    acceptor_(io_service_, ep_),
+    front_conns_()
 {
     acceptor_.set_option(ip::tcp::acceptor::reuse_address(true));
     acceptor_.listen();
@@ -54,11 +55,49 @@ void http_server::accept_handler(const boost::system::error_code& ec, socket_ptr
         p_sock->remote_endpoint().port() << endl;
 
     connection_ptr new_c = boost::make_shared<connection>(p_sock, *this);
-    connections_.insert(new_c);
+    front_conns_.left.insert(std::make_pair(new_c, (uint64_t)0));
     new_c->start();
 
     // 再次启动接收异步请求
     do_accept();
+}
+
+
+int64_t http_server::request_session_id(connection_ptr ptr)
+{
+    auto p = front_conns_.left.find(ptr);
+    if (p == front_conns_.left.end())
+        return (int64_t)-1;
+
+    return p->second;
+}
+
+
+bool http_server::set_session_id(connection_ptr ptr, uint64_t session_id)
+{
+    auto p = front_conns_.left.find(ptr);
+    if (p == front_conns_.left.end())
+        return false;
+
+    front_conns_.left.replace_data(p, session_id);
+    return true;
+}
+
+connection_ptr http_server::request_connection(uint64_t session_id)
+{
+    assert(session_id != 0);
+    assert((int64_t)session_id != -1);
+
+    // ::right_iterator
+    auto p = front_conns_.right.find(session_id);
+    
+    if (p == front_conns_.right.end())
+        return nullptr;
+
+    assert(front_conns_.right.count(session_id) == 1);
+    //cout << typeid(p).name() << endl;
+
+    return p->second;
 }
 
 } // END NAMESPACE 
