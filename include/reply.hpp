@@ -26,19 +26,23 @@ public:
     static std::string fixed_reply_error;
     static std::string fixed_reply_ok;
 
-    static string reply_generate(const string& content)
+    static string reply_generate(const string& content, const string& stat_str)
     {
-        std::vector<header> headers(3);
+        std::vector<header> headers(5);
 
         // reply fixed header
-        headers[0].name = "Content-Length";
-        headers[0].value = std::to_string((long long unsigned)content.size());
-        headers[1].name = "Content-Type";
-        headers[1].value = "text/html";
-        headers[2].name = "Connection";
-        headers[2].value = "keep-alive";
+        headers[0].name = "Server";
+        headers[0].value = "airobot_msgd/1.0";
+        headers[1].name = "Date";
+        headers[1].value = to_simple_string(second_clock::universal_time());
+        headers[2].name = "Content-Length";
+        headers[2].value = std::to_string((long long unsigned)content.size()+1);
+        headers[3].name = "Content-Type";
+        headers[3].value = "text/html";
+        headers[4].name = "Connection";
+        headers[4].value = "keep-alive";
 
-        string str = "";
+        string str = stat_str;
         for (int i=0; i< headers.size(); ++i)
         {
             str += headers[i].name;

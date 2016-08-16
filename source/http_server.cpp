@@ -29,8 +29,8 @@ void http_server::run()
                   "<head><title>Internal Server Error</title></head>"
                   "<body><h1>500 Internal Server Error</h1></body>"
                   "</html>";
-    reply::fixed_reply_error = reply::reply_generate(err); 
-    reply::fixed_reply_ok = reply::reply_generate("{}");
+    reply::fixed_reply_error = reply::reply_generate(err, http_proto::status::internal_server_error); 
+    reply::fixed_reply_ok = reply::reply_generate("{}", http_proto::status::ok);
     io_service_.run();
 }
 
@@ -50,7 +50,7 @@ void http_server::accept_handler(const boost::system::error_code& ec, socket_ptr
         return;
     }
 
-    cout << "Client Info: " << p_sock->remote_endpoint().address() <<
+    cout << "Client Info: " << p_sock->remote_endpoint().address() << "/" <<
         p_sock->remote_endpoint().port() << endl;
 
     connection_ptr new_c = boost::make_shared<connection>(p_sock);

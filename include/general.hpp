@@ -8,6 +8,10 @@ using std::endl;
 #include <string>
 using std::string;
 
+#include <cstdint>
+using std::int64_t;
+using std::uint64_t;
+
 
 #include <boost/asio.hpp>
 using namespace boost::asio;

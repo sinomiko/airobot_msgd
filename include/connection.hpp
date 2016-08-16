@@ -2,6 +2,8 @@
 #define _CONNECTION_H_
 
 #include "general.hpp"
+#include "http_proto.hpp"
+#include "http_parser.hpp"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 using namespace boost::posix_time;
@@ -36,6 +38,7 @@ private:
     ptime touch_time_;
     boost::shared_ptr<std::vector<char> > p_buffer_;
     boost::shared_ptr<std::vector<char> > p_write_;
+    http_parser parser_;
 };
 
 }
