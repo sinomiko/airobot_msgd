@@ -23,7 +23,6 @@ void front_conn::stop()
 {
     //server_.set_session_id(shared_from_this(), (int64_t)-1);
     set_stats(conn_pending);
-    p_sock_->close();
 }
 
 
@@ -59,8 +58,10 @@ void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_
                 if (server_.request_session_id(shared_from_this()) == 0) 
                 {
                     server_.set_session_id(shared_from_this(), session_id);
+#if 0
                     cout << server_.request_session_id(shared_from_this()) << endl;
-                    //assert (shared_from_this() == server_.request_connection(session_id));
+                    assert (shared_from_this() == server_.request_connection(session_id));
+#endif
                 }
 
                 if (json_parsed["msg_type"].uint64_value() == 3 ||
@@ -88,6 +89,7 @@ void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_
     else if (ec != boost::asio::error::operation_aborted)
     {
         cerr << "READ ERROR FOUND!" << endl;
+        p_sock_->close();
         set_stats(conn_error);
         return;
     }
@@ -118,6 +120,7 @@ void front_conn::write_handler(const boost::system::error_code& ec, size_t bytes
     else if (ec != boost::asio::error::operation_aborted)
     {
         //cerr << "WRITE ERROR FOUND!" << endl;
+        p_sock_->close();
         set_stats(conn_error);
     }
 }

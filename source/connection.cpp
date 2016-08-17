@@ -27,7 +27,13 @@ void connection::start()
 
 void connection::do_read()
 {
-    p_sock_->async_read_some(buffer(*p_buffer_), 
+    if (get_stats() != conn_working) 
+    {
+        cout << "SOCK STATUS: %d" << get_stats() << endl;
+        return;
+    }
+
+    p_sock_->async_read_some(buffer(*p_buffer_),
                              boost::bind(&connection::read_handler, 
                                   this, 
                                   boost::asio::placeholders::error, 
@@ -36,6 +42,11 @@ void connection::do_read()
 
 void connection::do_write()
 {
+    if (get_stats() != conn_working) 
+    {
+        cout << "SOCK STATUS: %d" << get_stats() << endl;
+        return;
+    }
 
     p_sock_->async_write_some(buffer(*p_write_), 
                          boost::bind(&connection::write_handler,

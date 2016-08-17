@@ -1,4 +1,6 @@
 #include "backend_server.hpp"
+#include "http_server.hpp"
+#include "front_conn.hpp"
 
 namespace airobot {
 
@@ -51,7 +53,17 @@ void backend_server::accept_handler(const boost::system::error_code& ec, socket_
 
 void backend_server::push_front(uint64_t session_id, const char* dat, size_t len)
 {
+    if (!session_id || !dat || !len)
+        return;
+    
+    front_conn_ptr ptr = http_->request_connection(session_id);
+    
+    if (ptr == nullptr) 
+        return;
 
+    ptr->fill_and_send(dat, len);
+
+    return;
 }
 
 backend_conn_ptr backend_server::require_backend_conn(uint64_t site_id)

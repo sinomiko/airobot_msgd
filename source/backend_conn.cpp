@@ -1,4 +1,5 @@
 #include "backend_conn.hpp"
+#include "backend_server.hpp"
 #include "json11.hpp"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -18,9 +19,7 @@ backend_conn::backend_conn(boost::shared_ptr<ip::tcp::socket> p_sock,
 
 void backend_conn::stop()
 {
-    //server_.set_session_id(shared_from_this(), (int64_t)-1);
     set_stats(conn_pending);
-    p_sock_->close();
 }
 
 
@@ -28,9 +27,29 @@ void backend_conn::read_handler(const boost::system::error_code &ec, size_t byte
 {
     if (!ec && bytes_transferred) 
     {
-        cout << &(*p_buffer_)[0] << endl;
+        cout << p_buffer_->data() << endl;
+        string json_err;
+        auto json_parsed = json11::Json::parse(p_buffer_->data(), json_err);
+        uint64_t session_id = (uint64_t)json_parsed["session_id"].uint64_value();
+        uint64_t site_id = (uint64_t)json_parsed["site_id"].uint64_value();
 
+        if (session_id == 0 || site_id == 0) 
+            goto ok_no_return;
+        
+
+        // TODO: 转发到前台
+        server_.push_front(session_id, p_buffer_->data(), strlen(p_buffer_->data())+1);
     }
+    else if (ec != boost::asio::error::operation_aborted)
+    {
+        cerr << "READ ERROR FOUND!" << endl;
+        p_sock_->close();
+        set_stats(conn_error);
+    }
+
+ok_no_return:
+
+    do_read();
     return;
 }
 
@@ -46,6 +65,7 @@ void backend_conn::write_handler(const boost::system::error_code& ec, size_t byt
     else if (ec != boost::asio::error::operation_aborted)
     {
         cerr << "WRITE ERROR FOUND!" << endl;
+        p_sock_->close();
         set_stats(conn_error);
     }
 }
