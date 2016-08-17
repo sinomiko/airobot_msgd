@@ -2,7 +2,7 @@
 #define _BACKEND_SERVER_HPP
 
 #include "general.hpp"
-#include "connection.hpp"
+#include "backend_conn.hpp"
 
 #include <boost/bind.hpp>
 #include <set>
@@ -31,8 +31,7 @@ private:
     void do_accept();
     void accept_handler(const boost::system::error_code& ec, socket_ptr ptr);
 
-    std::set<connection_ptr> connections_; // map latter
-    //std::map<unsigned long long session_id, connection_ptr> connections_;
+    std::set<backend_conn_ptr> connections_; // map latter
 
 };
 

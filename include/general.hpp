@@ -24,8 +24,6 @@ using namespace boost::asio;
 namespace airobot {
 
 typedef boost::shared_ptr<ip::tcp::socket> socket_ptr;
-class connection;
-typedef boost::shared_ptr<connection> connection_ptr;
 
 }
 

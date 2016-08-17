@@ -1,5 +1,6 @@
 #include "general.hpp"
 #include "http_parser.hpp"
+#include "http_proto.hpp"
 
 #include <boost/algorithm/string.hpp>
 #include <sstream>

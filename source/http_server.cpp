@@ -1,6 +1,8 @@
 #include <iostream>
 
 #include "http_server.hpp"
+#include "http_proto.hpp"
+#include "front_conn.hpp"
 #include "reply.hpp"
 
 namespace airobot {
@@ -54,7 +56,7 @@ void http_server::accept_handler(const boost::system::error_code& ec, socket_ptr
     cout << "Client Info: " << p_sock->remote_endpoint().address() << "/" <<
         p_sock->remote_endpoint().port() << endl;
 
-    connection_ptr new_c = boost::make_shared<connection>(p_sock, *this);
+    front_conn_ptr new_c = boost::make_shared<front_conn>(p_sock, *this);
     front_conns_.left.insert(std::make_pair(new_c, (uint64_t)0));
     new_c->start();
 
@@ -63,7 +65,7 @@ void http_server::accept_handler(const boost::system::error_code& ec, socket_ptr
 }
 
 
-int64_t http_server::request_session_id(connection_ptr ptr)
+int64_t http_server::request_session_id(front_conn_ptr ptr)
 {
     auto p = front_conns_.left.find(ptr);
     if (p == front_conns_.left.end())
@@ -73,7 +75,7 @@ int64_t http_server::request_session_id(connection_ptr ptr)
 }
 
 
-bool http_server::set_session_id(connection_ptr ptr, uint64_t session_id)
+bool http_server::set_session_id(front_conn_ptr ptr, uint64_t session_id)
 {
     auto p = front_conns_.left.find(ptr);
     if (p == front_conns_.left.end())
@@ -83,7 +85,7 @@ bool http_server::set_session_id(connection_ptr ptr, uint64_t session_id)
     return true;
 }
 
-connection_ptr http_server::request_connection(uint64_t session_id)
+front_conn_ptr http_server::request_connection(uint64_t session_id)
 {
     assert(session_id != 0);
     assert((int64_t)session_id != -1);
