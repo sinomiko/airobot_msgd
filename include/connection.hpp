@@ -18,6 +18,11 @@ enum connection_stats {
     conn_error,
 };
 
+class http_server;
+class backend_server;
+extern void show_front_conns_info(bool verbose);
+extern void show_backend_conns_info(bool verbose);
+
 class connection
 {
 
@@ -42,16 +47,19 @@ protected:
     void do_write();
 
     virtual void read_handler(const boost::system::error_code& ec, std::size_t bytes_transferred) = 0;
-    virtual void write_handler(const boost::system::error_code &ec, std::size_t bytes_transferred) = 0; 
+    virtual void write_handler(const boost::system::error_code &ec, std::size_t bytes_transferred) = 0;
 
     boost::shared_ptr<ip::tcp::socket> p_sock_;
-    ptime touch_time_;
     boost::shared_ptr<std::vector<char> > p_buffer_;
     boost::shared_ptr<std::vector<char> > p_write_;
 
     virtual ~connection() {}
 
     enum connection_stats stats_;
+
+public:
+    ptime touch_time_;
+
 };
 
 }

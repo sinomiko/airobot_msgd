@@ -7,6 +7,8 @@
 #include "backend_server.hpp"
 #include "backend_conn.hpp"
 
+#include <boost/format.hpp>
+
 namespace airobot {
 
 std::string reply::fixed_reply_error;
@@ -15,7 +17,7 @@ std::string reply::fixed_reply_ok;
 
 http_server::http_server(const std::string& address, unsigned short port,
                     const std::string& doc_root) :
-    io_service_(), 
+    io_service_(),
     ep_(ip::tcp::endpoint(ip::address::from_string(address), port)),
     acceptor_(io_service_, ep_),
     front_conns_(),
@@ -35,7 +37,7 @@ void http_server::run()
                   "<head><title>Internal Server Error</title></head>"
                   "<body><h1>500 Internal Server Error</h1></body>"
                   "</html>";
-    reply::fixed_reply_error = reply::reply_generate(err, http_proto::status::internal_server_error); 
+    reply::fixed_reply_error = reply::reply_generate(err, http_proto::status::internal_server_error);
     reply::fixed_reply_ok = reply::reply_generate("{}", http_proto::status::ok);
     io_service_.run();
 }
@@ -43,8 +45,8 @@ void http_server::run()
 void http_server::do_accept()
 {
     socket_ptr p_sock(new ip::tcp::socket(io_service_));
-    acceptor_.async_accept(*p_sock, 
-                           boost::bind(&http_server::accept_handler, this, 
+    acceptor_.async_accept(*p_sock,
+                           boost::bind(&http_server::accept_handler, this,
                                        boost::asio::placeholders::error, p_sock));
 }
 
@@ -95,7 +97,7 @@ front_conn_ptr http_server::request_connection(uint64_t session_id)
 
     // ::right_iterator
     auto p = front_conns_.right.find(session_id);
-    
+
     if (p == front_conns_.right.end())
         return nullptr;
 
@@ -108,8 +110,8 @@ front_conn_ptr http_server::request_connection(uint64_t session_id)
 void http_server::push_backend(uint64_t site_id, const char* dat, size_t len)
 {
     backend_conn_ptr ptr = backend_->require_backend_conn(site_id);
-    
-    if (ptr == nullptr) 
+
+    if (ptr == nullptr)
         return;
 
     ptr->fill_and_send(dat, len);
@@ -117,6 +119,46 @@ void http_server::push_backend(uint64_t site_id, const char* dat, size_t len)
     return;
 }
 
-} // END NAMESPACE 
+
+void http_server::show_conns_info(bool verbose)
+{
+    size_t total_cnt = 0, err_cnt = 0, work_cnt = 0, pend_cnt = 0;
+    size_t normal_cnt = 0, zero_cnt = 0, negone_cnt = 0;
+ 
+    front_conn_type::left_map& view = front_conns_.left;
+
+    for (auto const_iter = view.begin(); const_iter != view.end(); ++const_iter)
+    {
+        if (verbose) 
+            cout << boost::format("front_conn[%d], touched:%s, status: ")
+                                  % total_cnt % to_simple_string(const_iter->first->touch_time_); 
+        
+        if (const_iter->first->get_stats() == conn_working)
+        { work_cnt++; if (verbose) cout << "working" ; }
+        if (const_iter->first->get_stats() == conn_pending)
+        { pend_cnt++; if (verbose) cout << "pending" ; }
+        if (const_iter->first->get_stats() == conn_error)
+        { err_cnt++;  if (verbose) cout << "error" ; }
+
+        cout << endl << "\t";
+        if ((int64_t)const_iter->second == 0)
+        { zero_cnt++;   if (verbose) cout << "session: 0" << endl; }
+        if ((int64_t)const_iter->second == -1)
+        { negone_cnt++; if (verbose) cout << "session: -1" << endl; }
+        else
+        { normal_cnt++; if (verbose) cout << "session: " << const_iter->second << endl; }
+
+        total_cnt ++;
+    }
+
+    cout << boost::format("[FRONT_SERVER  ] total:%d, working:%d, pending:%d, error:%d ")
+        % total_cnt % work_cnt % pend_cnt % err_cnt << endl;
+    cout << boost::format("\tsession, normal:%d, 0:%d, -1:%d ")
+        % normal_cnt % zero_cnt % negone_cnt << endl;
+
+    return;
+}
+
+} // END NAMESPACE
 
 

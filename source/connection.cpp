@@ -11,47 +11,47 @@ using namespace boost::gregorian;
 namespace airobot {
 
 connection::connection(boost::shared_ptr<ip::tcp::socket> p_sock):
-    touch_time_(second_clock::local_time()), 
+    touch_time_(second_clock::local_time()),
     p_sock_(p_sock),
     stats_(conn_pending)
 {
     p_buffer_ = boost::make_shared<std::vector<char> >(16*1024, 0);
-    p_write_  = boost::make_shared<std::vector<char> >(16*1024, 0); 
+    p_write_  = boost::make_shared<std::vector<char> >(16*1024, 0);
 }
 
 void connection::start()
 {
-    set_stats(conn_pending);
+    set_stats(conn_working);
     do_read();
 }
 
 void connection::do_read()
 {
-    if (get_stats() != conn_working) 
+    if (get_stats() != conn_working)
     {
         cout << "SOCK STATUS: %d" << get_stats() << endl;
         return;
     }
 
     p_sock_->async_read_some(buffer(*p_buffer_),
-                             boost::bind(&connection::read_handler, 
-                                  this, 
-                                  boost::asio::placeholders::error, 
+                             boost::bind(&connection::read_handler,
+                                  this,
+                                  boost::asio::placeholders::error,
                                   boost::asio::placeholders::bytes_transferred));
 }
 
 void connection::do_write()
 {
-    if (get_stats() != conn_working) 
+    if (get_stats() != conn_working)
     {
         cout << "SOCK STATUS: %d" << get_stats() << endl;
         return;
     }
 
-    p_sock_->async_write_some(buffer(*p_write_), 
+    p_sock_->async_write_some(buffer(*p_write_),
                          boost::bind(&connection::write_handler,
-                                  this, 
-                                  boost::asio::placeholders::error, 
+                                  this,
+                                  boost::asio::placeholders::error,
                                   boost::asio::placeholders::bytes_transferred));
 }
 

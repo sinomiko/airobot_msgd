@@ -42,6 +42,7 @@ public:
     }
 
     void push_backend(uint64_t site_id, const char* dat, size_t len);
+    void show_conns_info(bool verbose);
 
 private:
     io_service io_service_;
@@ -52,11 +53,11 @@ private:
     void do_accept();
     void accept_handler(const boost::system::error_code& ec, socket_ptr ptr);
 
-    typedef boost::bimap< boost::bimaps::set_of<front_conn_ptr>, 
+    typedef boost::bimap< boost::bimaps::set_of<front_conn_ptr>,
                           boost::bimaps::multiset_of<uint64_t> > front_conn_type;
 
     front_conn_type front_conns_;
-    //std::set<connection_ptr> connections_; 
+    //std::set<connection_ptr> connections_;
     //std::map<unsigned long long session_id, connection_ptr> connections_;
 
     boost::shared_ptr<backend_server> backend_;
