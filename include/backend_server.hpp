@@ -9,6 +9,8 @@
 
 namespace airobot {
 
+class http_server;
+
 class backend_server {
 public:
     //不准拷贝、赋值
@@ -22,6 +24,11 @@ public:
     /// Run the server's io_service loop.
     void run();
 
+    void set_http(boost::shared_ptr<http_server> ptr)
+    {
+        http_ = ptr;
+    }
+
 private:
     io_service io_service_;
 
@@ -31,7 +38,8 @@ private:
     void do_accept();
     void accept_handler(const boost::system::error_code& ec, socket_ptr ptr);
 
-    std::set<backend_conn_ptr> connections_; // map latter
+    std::vector<backend_conn_ptr> backend_conns_; // map latter
+    boost::shared_ptr<http_server> http_;
 
 };
 

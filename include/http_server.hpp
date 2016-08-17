@@ -15,6 +15,8 @@ namespace airobot {
 
 using namespace boost::asio;
 
+class backend_server;
+
 class http_server
 {
 public:
@@ -34,6 +36,11 @@ public:
     bool set_session_id(front_conn_ptr ptr, uint64_t session_id);
     front_conn_ptr request_connection(uint64_t session_id);
 
+    void set_backend(boost::shared_ptr<backend_server> ptr)
+    {
+        backend_ = ptr;
+    }
+
 private:
     io_service io_service_;
 
@@ -45,9 +52,12 @@ private:
 
     typedef boost::bimap< boost::bimaps::set_of<front_conn_ptr>, 
                           boost::bimaps::multiset_of<uint64_t> > front_conn_type;
+
     front_conn_type front_conns_;
     //std::set<connection_ptr> connections_; 
     //std::map<unsigned long long session_id, connection_ptr> connections_;
+
+    boost::shared_ptr<backend_server> backend_;
 };
 
 } // END NAMESPACE

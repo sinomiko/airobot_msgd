@@ -19,6 +19,7 @@ backend_conn::backend_conn(boost::shared_ptr<ip::tcp::socket> p_sock,
 void backend_conn::stop()
 {
     //server_.set_session_id(shared_from_this(), (int64_t)-1);
+    set_stats(conn_pending);
     p_sock_->close();
 }
 
@@ -37,7 +38,7 @@ void backend_conn::write_handler(const boost::system::error_code& ec, size_t byt
 {
     if (!ec && bytes_transferred) 
     {
-        cout << "WRITE OK!" << endl;
+        //cout << "WRITE OK!" << endl;
 
         //不会主动调读的
         //do_write();
@@ -45,6 +46,7 @@ void backend_conn::write_handler(const boost::system::error_code& ec, size_t byt
     else if (ec != boost::asio::error::operation_aborted)
     {
         cerr << "WRITE ERROR FOUND!" << endl;
+        set_stats(conn_error);
     }
 }
 

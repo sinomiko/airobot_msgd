@@ -21,7 +21,8 @@ front_conn::front_conn(boost::shared_ptr<ip::tcp::socket> p_sock,
 
 void front_conn::stop()
 {
-    server_.set_session_id(shared_from_this(), (int64_t)-1);
+    //server_.set_session_id(shared_from_this(), (int64_t)-1);
+    set_stats(conn_pending);
     p_sock_->close();
 }
 
@@ -84,7 +85,7 @@ void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_
     else if (ec != boost::asio::error::operation_aborted)
     {
         cerr << "READ ERROR FOUND!" << endl;
-        shared_from_this()->stop();
+        set_stats(conn_error);
         return;
     }
 
@@ -106,14 +107,15 @@ void front_conn::write_handler(const boost::system::error_code& ec, size_t bytes
 {
     if (!ec && bytes_transferred) 
     {
-        cout << "WRITE OK!" << endl;
+        //cout << "WRITE OK!" << endl;
 
         //不会主动调读的
         //do_write();
     }
     else if (ec != boost::asio::error::operation_aborted)
     {
-        cerr << "WRITE ERROR FOUND!" << endl;
+        //cerr << "WRITE ERROR FOUND!" << endl;
+        set_stats(conn_error);
     }
 }
 

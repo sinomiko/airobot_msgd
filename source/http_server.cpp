@@ -16,7 +16,8 @@ http_server::http_server(const std::string& address, unsigned short port,
     io_service_(), 
     ep_(ip::tcp::endpoint(ip::address::from_string(address), port)),
     acceptor_(io_service_, ep_),
-    front_conns_()
+    front_conns_(),
+    backend_(nullptr)
 {
     acceptor_.set_option(ip::tcp::acceptor::reuse_address(true));
     acceptor_.listen();

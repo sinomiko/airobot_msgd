@@ -12,7 +12,8 @@ namespace airobot {
 
 connection::connection(boost::shared_ptr<ip::tcp::socket> p_sock):
     touch_time_(second_clock::local_time()), 
-    p_sock_(p_sock)
+    p_sock_(p_sock),
+    stats_(conn_pending)
 {
     p_buffer_ = boost::make_shared<std::vector<char> >(16*1024, 0);
     p_write_  = boost::make_shared<std::vector<char> >(16*1024, 0); 
@@ -20,6 +21,7 @@ connection::connection(boost::shared_ptr<ip::tcp::socket> p_sock):
 
 void connection::start()
 {
+    set_stats(conn_pending);
     do_read();
 }
 

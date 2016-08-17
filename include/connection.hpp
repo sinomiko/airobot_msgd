@@ -11,7 +11,12 @@ using namespace boost::gregorian;
 
 namespace airobot {
 
-class http_server;
+
+enum connection_stats {
+    conn_working = 1,
+    conn_pending,
+    conn_error,
+};
 
 class connection
 {
@@ -25,6 +30,9 @@ public:
 
     void start();
     virtual void stop() = 0;
+
+    enum connection_stats get_stats() { return stats_; }
+    void set_stats(enum connection_stats stat) { stats_ = stat; }
 
 protected:
     // 异步IO
@@ -40,7 +48,8 @@ protected:
     boost::shared_ptr<std::vector<char> > p_write_;
 
     virtual ~connection() {}
-  
+
+    enum connection_stats stats_;
 };
 
 }
