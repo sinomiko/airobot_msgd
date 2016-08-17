@@ -41,6 +41,8 @@ public:
         backend_ = ptr;
     }
 
+    void push_backend(uint64_t site_id, const char* dat, size_t len);
+
 private:
     io_service io_service_;
 

@@ -29,6 +29,9 @@ public:
         http_ = ptr;
     }
 
+    void push_front(uint64_t session_id, const char* dat, size_t len);
+    backend_conn_ptr require_backend_conn(uint64_t site_id);
+
 private:
     io_service io_service_;
 

@@ -49,4 +49,17 @@ void backend_server::accept_handler(const boost::system::error_code& ec, socket_
     do_accept();
 }
 
+void backend_server::push_front(uint64_t session_id, const char* dat, size_t len)
+{
+
+}
+
+backend_conn_ptr backend_server::require_backend_conn(uint64_t site_id)
+{
+    if (!backend_conns_.size())
+        return nullptr;
+    
+    return backend_conns_[site_id % backend_conns_.size()];
+}
+
 }  // END NAMESPACE

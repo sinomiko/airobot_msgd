@@ -4,6 +4,8 @@
 #include "http_proto.hpp"
 #include "front_conn.hpp"
 #include "reply.hpp"
+#include "backend_server.hpp"
+#include "backend_conn.hpp"
 
 namespace airobot {
 
@@ -101,6 +103,18 @@ front_conn_ptr http_server::request_connection(uint64_t session_id)
     //cout << typeid(p).name() << endl;
 
     return p->second;
+}
+
+void http_server::push_backend(uint64_t site_id, const char* dat, size_t len)
+{
+    backend_conn_ptr ptr = backend_->require_backend_conn(site_id);
+    
+    if (ptr == nullptr) 
+        return;
+
+    ptr->fill_and_send(dat, len);
+
+    return;
 }
 
 } // END NAMESPACE 

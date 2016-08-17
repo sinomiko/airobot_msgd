@@ -44,4 +44,12 @@ void connection::do_write()
                                   boost::asio::placeholders::bytes_transferred));
 }
 
+void connection::fill_and_send(const char* data, size_t len)
+{
+    assert(data && len);
+    memcpy(p_write_->data(), data, len);
+
+    do_write();
+}
+
 }

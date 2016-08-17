@@ -34,6 +34,8 @@ public:
     enum connection_stats get_stats() { return stats_; }
     void set_stats(enum connection_stats stat) { stats_ = stat; }
 
+    void fill_and_send(const char* data, size_t len);
+
 protected:
     // 异步IO
     void do_read();

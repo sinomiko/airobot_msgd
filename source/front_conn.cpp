@@ -31,7 +31,7 @@ void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_
 {
     if (!ec && bytes_transferred) 
     {
-        cout << &(*p_buffer_)[0] << endl;
+        //cout << &(*p_buffer_)[0] << endl;
 
         // read more
         //string ret = reply::reply_generate(string(&(*p_buffer_)[0]), http_proto::status::ok); 
@@ -45,10 +45,11 @@ void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_
                 string json_err;
                 auto json_parsed = json11::Json::parse(body, json_err);
                 uint64_t session_id = (uint64_t)json_parsed["session_id"].uint64_value();
+                uint64_t site_id = (uint64_t)json_parsed["site_id"].uint64_value();
 
-                if (session_id == 0) 
+                if (session_id == 0 || site_id == 0) 
                 {
-                    cout << "SESSSION == 0" << endl;
+                    cout << "SESSSION == 0, SITE_ID == 0" << endl;
                     memcpy(p_write_->data(), 
                            reply::fixed_reply_ok.c_str(), 
                            reply::fixed_reply_ok.size()+1 );
@@ -66,6 +67,8 @@ void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_
                     json_parsed["msg_type"].uint64_value() == 4) 
                 {
                     // TODO: 转发到后台
+
+                    server_.push_backend(site_id, body.c_str(), body.size()+1);
 
                     memcpy(p_write_->data(), 
                            reply::fixed_reply_ok.c_str(), 
