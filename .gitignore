@@ -2,3 +2,5 @@ airobot_msgd
 airobot_msgd.*
 obj/
 *.log
+test/obj/
+test/airobot_msgd_test
