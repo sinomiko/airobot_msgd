@@ -54,12 +54,12 @@ void http_server::accept_handler(const boost::system::error_code& ec, socket_ptr
 {
     if (ec)
     {
-        std::cerr << "Error found at:" << __LINE__ << endl;
+        BOOST_LOG_T(error) << "Error during accept!";
         return;
     }
 
-    cout << "Client Info: " << p_sock->remote_endpoint().address() << "/" <<
-        p_sock->remote_endpoint().port() << endl;
+    BOOST_LOG_T(debug) << "Client Info: " << p_sock->remote_endpoint().address() << "/" <<
+        p_sock->remote_endpoint().port();
 
     front_conn_ptr new_c = boost::make_shared<front_conn>(p_sock, *this);
     front_conns_.left.insert(std::make_pair(new_c, (uint64_t)0));

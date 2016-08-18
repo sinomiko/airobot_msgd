@@ -29,7 +29,7 @@ void connection::do_read()
 {
     if (get_stats() != conn_working)
     {
-        cout << "SOCK STATUS: %d" << get_stats() << endl;
+        BOOST_LOG_T(error) << "SOCK STATUS: " << get_stats();
         return;
     }
 
@@ -44,7 +44,7 @@ void connection::do_write()
 {
     if (get_stats() != conn_working)
     {
-        cout << "SOCK STATUS: %d" << get_stats() << endl;
+        BOOST_LOG_T(error) << "SOCK STATUS: " << get_stats();
         return;
     }
 

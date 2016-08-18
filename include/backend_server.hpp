@@ -5,11 +5,13 @@
 #include "backend_conn.hpp"
 
 #include <boost/bind.hpp>
-#include <set>
+#include <boost/asio/deadline_timer.hpp>
 
 namespace airobot {
 
 class http_server;
+
+static constexpr int BACKEND_CHECK_INTERVEL = 5; //5s
 
 class backend_server {
 public:
@@ -33,6 +35,7 @@ public:
     backend_conn_ptr require_backend_conn(uint64_t site_id);
 
     void show_conns_info(bool verbose);
+    void on_check_timeout(const boost::system::error_code& e);
 
 private:
     io_service io_service_;
@@ -46,6 +49,7 @@ private:
     std::vector<backend_conn_ptr> backend_conns_; // map latter
     boost::shared_ptr<http_server> http_;
 
+    boost::asio::basic_deadline_timer< boost::posix_time::ptime > check_timer_;
 };
 
 } // END NAMESPACE

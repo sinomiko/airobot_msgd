@@ -26,6 +26,8 @@ public:
     virtual void read_handler(const boost::system::error_code &ec, std::size_t bytes_transferred) override; 
     virtual void write_handler(const boost::system::error_code &ec, std::size_t bytes_transferred) override; 
 
+    virtual ~backend_conn() { BOOST_LOG_T(debug) << "BACKEND SOCKET RELEASED!!!"; }
+
 private:
     backend_server& server_;
 };

@@ -27,7 +27,7 @@ void backend_conn::read_handler(const boost::system::error_code &ec, size_t byte
 {
     if (!ec && bytes_transferred) 
     {
-        cout << p_buffer_->data() << endl;
+        //cout << p_buffer_->data() << endl;
         string json_err;
         auto json_parsed = json11::Json::parse(p_buffer_->data(), json_err);
         uint64_t session_id = (uint64_t)json_parsed["session_id"].uint64_value();
@@ -42,7 +42,7 @@ void backend_conn::read_handler(const boost::system::error_code &ec, size_t byte
     }
     else if (ec != boost::asio::error::operation_aborted)
     {
-        cerr << "READ ERROR FOUND!" << endl;
+        BOOST_LOG_T(error) <<  "READ ERROR FOUND!";
         p_sock_->close();
         set_stats(conn_error);
     }
@@ -64,7 +64,7 @@ void backend_conn::write_handler(const boost::system::error_code& ec, size_t byt
     }
     else if (ec != boost::asio::error::operation_aborted)
     {
-        cerr << "WRITE ERROR FOUND!" << endl;
+        BOOST_LOG_T(error) << "WRITE ERROR FOUND!";
         p_sock_->close();
         set_stats(conn_error);
     }

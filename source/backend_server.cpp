@@ -6,15 +6,23 @@
 
 namespace airobot {
 
+static boost::condition_variable conn_notify;
+static boost::mutex conn_notify_mutex;
+
 backend_server::backend_server(const std::string& address, unsigned short port) :
     io_service_(),
     ep_(ip::tcp::endpoint(ip::address::from_string(address), port)),
     acceptor_(io_service_, ep_),
     backend_conns_(),
-    http_(nullptr)
+    http_(nullptr),
+    check_timer_(io_service_)
 {
     acceptor_.set_option(ip::tcp::acceptor::reuse_address(true));
     acceptor_.listen();
+
+    check_timer_.expires_from_now(boost::posix_time::seconds(BACKEND_CHECK_INTERVEL)); 
+    check_timer_.async_wait(boost::bind(&backend_server::on_check_timeout,
+                                        this, boost::asio::placeholders::error));
 
     do_accept();
 }
@@ -38,12 +46,12 @@ void backend_server::accept_handler(const boost::system::error_code& ec, socket_
 {
     if (ec)
     {
-        std::cerr << "Error found at:" << __LINE__ << endl;
+        BOOST_LOG_T(error) << "Error during accept";
         return;
     }
 
-    cout << "Client Info: " << p_sock->remote_endpoint().address() <<
-        p_sock->remote_endpoint().port() << endl;
+    BOOST_LOG_T(debug)  << "Client Info: " << p_sock->remote_endpoint().address() << "/"
+        << p_sock->remote_endpoint().port();
 
     backend_conn_ptr new_c = boost::make_shared<backend_conn>(p_sock, *this);
     backend_conns_.push_back(new_c);
@@ -119,7 +127,53 @@ void backend_server::show_conns_info(bool verbose)
 }
 
 
+void backend_server::on_check_timeout(const boost::system::error_code& e)
+{
+    if (e != boost::asio::error::operation_aborted)
+    {
+        // 检查后端连接
+        if (backend_conns_.empty())
+            goto return_entry;
 
+        // std::vector迭代修改是不允许的，同时大多数情况应该都是正常的，
+        // 首先遍历如果没有错误的，就快速放回
+        // 否则拷贝一份新的正常的，再将原来的拷贝过去
+        bool all_ok = true;
+        for (auto& item: backend_conns_)
+        {
+            if (item->get_stats() == conn_error)
+            {
+                all_ok = false;
+                break;
+            }
+        }
+
+        if (all_ok) goto return_entry;
+        
+        std::vector<backend_conn_ptr> new_store;
+        for (auto& item: backend_conns_)
+        {
+            if (item->get_stats() == conn_error)
+            {
+                /**/;
+            }
+            else
+            {
+                new_store.push_back(item);
+            }
+        }
+
+        // delete it!
+        backend_conns_.clear();
+        backend_conns_ = std::move(new_store);
+    }
+
+return_entry:
+    // 再次绑定
+    check_timer_.expires_from_now(boost::posix_time::seconds(BACKEND_CHECK_INTERVEL));
+    check_timer_.async_wait(boost::bind(&backend_server::on_check_timeout,
+                                        this, boost::asio::placeholders::error));
+}
 
 
 
