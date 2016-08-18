@@ -21,9 +21,14 @@ using namespace boost::asio;
 
 #include <boost/bind.hpp>
 
+#include <boost/log/trivial.hpp>
+
 namespace airobot {
 
 typedef boost::shared_ptr<ip::tcp::socket> socket_ptr;
+
+extern char *basename(char *path);
+#define BOOST_LOG_T(x) BOOST_LOG_TRIVIAL(x)<<::basename(__FILE__)<<":"<<__LINE__<<"[@"<<__func__<<"]"<<" " 
 
 }
 

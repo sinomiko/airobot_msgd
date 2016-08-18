@@ -10,7 +10,7 @@ PACKAGE_VERSION = 1.0
 SHELL = /bin/bash
 VERSION = 1.0
 SRC_DIRS = ./source
-EXTRAFLAGS = -I./include $(shell mysql_config --cflags --libs) -lboost_system -lboost_thread-mt -lboost_date_time -lboost_regex
+EXTRAFLAGS = -I./include $(shell mysql_config --cflags --libs) -DBOOST_LOG_DYN_LINK -lboost_system -lboost_thread-mt -lboost_date_time -lboost_regex -lboost_log -lboost_log_setup
 
 OBJDIR = ./obj
 

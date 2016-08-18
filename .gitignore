@@ -1,3 +1,4 @@
 airobot_msgd
 airobot_msgd.*
 obj/
+*.log

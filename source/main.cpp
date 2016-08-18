@@ -1,8 +1,4 @@
-#include <iostream>
-#include <string>
-
-using std::endl;
-using std::string;
+#include "general.hpp"
 
 #include <http_server.hpp>
 #include <backend_server.hpp>
@@ -14,6 +10,7 @@ namespace airobot {
 
 void manage_thread(boost::shared_ptr<http_server> p_srv,
                      boost::shared_ptr<backend_server> p_backend_srv);
+void boost_log_init(const string filename);
 
 }
 
@@ -25,17 +22,19 @@ int main(int argc, char* argv[])
     unsigned short back_port = 5590;
     const string doc_root = "./";
 
+    airobot::boost_log_init("airobot_running");
+
     boost::thread_group threads;
 
     try
     {
-        std::cout << "Server Runing At:" << ip_addr << ":" << srv_port << endl;
-        std::cout << "DocumentRoot:" << doc_root << endl;
+        BOOST_LOG_T(info) << "Server Runing At:" << ip_addr << ":" << srv_port;
+        BOOST_LOG_T(info) << "DocumentRoot:" << doc_root;
         //airobot::http_server srv(ip_addr, srv_port, doc_root);
         boost::shared_ptr<airobot::http_server> p_srv =
             boost::make_shared<airobot::http_server>(ip_addr, srv_port, doc_root);
 
-        std::cout << "Backend Server Runing At:" << ip_addr << ":" << back_port << endl;
+        BOOST_LOG_T(info) << "Backend Server Runing At:" << ip_addr << ":" << back_port;
         //airobot::backend_server backend_srv(ip_addr, back_port);
         boost::shared_ptr<airobot::backend_server> p_backend_srv =
             boost::make_shared<airobot::backend_server>(ip_addr, back_port);
@@ -61,7 +60,7 @@ int main(int argc, char* argv[])
     }
     catch (std::exception& e)
     {
-        std::cerr << "exception: " << e.what() << endl;;
+        BOOST_LOG_T(fatal) << "exception: " << e.what() << endl;;
     }
 
 
