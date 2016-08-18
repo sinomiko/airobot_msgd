@@ -88,9 +88,8 @@ void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_
     }
     else if (ec != boost::asio::error::operation_aborted)
     {
-        cerr << "READ ERROR FOUND!" << endl;
-        p_sock_->close();
-        set_stats(conn_error);
+        BOOST_LOG_T(error) << "READ ERROR FOUND!";
+        notify_conn_error();
         return;
     }
 
@@ -119,11 +118,20 @@ void front_conn::write_handler(const boost::system::error_code& ec, size_t bytes
     }
     else if (ec != boost::asio::error::operation_aborted)
     {
-        //cerr << "WRITE ERROR FOUND!" << endl;
-        p_sock_->close();
-        set_stats(conn_error);
+        BOOST_LOG_T(error) << "WRITE ERROR FOUND!";
+        notify_conn_error();
     }
 }
 
+
+void front_conn::notify_conn_error()
+{
+    {
+        boost::lock_guard<boost::mutex> lock(server_.conn_notify_mutex); 
+        p_sock_->close();
+        set_stats(conn_error);
+    }
+    server_.conn_notify.notify_one();
+}
 
 }

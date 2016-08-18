@@ -32,7 +32,9 @@ public:
     virtual void read_handler(const boost::system::error_code &ec, std::size_t bytes_transferred) override; 
     virtual void write_handler(const boost::system::error_code &ec, std::size_t bytes_transferred) override; 
 
-    virtual ~front_conn() { BOOST_LOG_T(debug) << "BACKEND SOCKET RELEASED!!!"; }
+    virtual ~front_conn() { BOOST_LOG_T(debug) << "FRONT SOCKET RELEASED!!!"; }
+
+    void notify_conn_error();
 
 private:
     http_parser parser_;

@@ -14,6 +14,8 @@ namespace airobot {
 std::string reply::fixed_reply_error;
 std::string reply::fixed_reply_ok;
 
+boost::condition_variable_any http_server::conn_notify;
+boost::mutex http_server::conn_notify_mutex;
 
 http_server::http_server(const std::string& address, unsigned short port,
                     const std::string& doc_root) :

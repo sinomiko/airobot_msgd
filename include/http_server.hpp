@@ -11,9 +11,14 @@
 #include <boost/bimap/set_of.hpp>
 #include <boost/bimap/multiset_of.hpp>
 
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition_variable.hpp>
+
 namespace airobot {
 
 using namespace boost::asio;
+
+static constexpr int FRONT_EXPIRED_INTERVEL = 30*60; //30min
 
 class backend_server;
 
@@ -44,6 +49,9 @@ public:
     void push_backend(uint64_t site_id, const char* dat, size_t len);
     void show_conns_info(bool verbose);
 
+    static boost::condition_variable_any conn_notify;
+    static boost::mutex conn_notify_mutex;
+
 private:
     io_service io_service_;
 
@@ -55,6 +63,9 @@ private:
 
     typedef boost::bimap< boost::bimaps::set_of<front_conn_ptr>,
                           boost::bimaps::multiset_of<uint64_t> > front_conn_type;
+
+    friend void manage_thread(boost::shared_ptr<http_server> p_srv,
+                     boost::shared_ptr<backend_server> p_backend_srv);
 
     front_conn_type front_conns_;
     //std::set<connection_ptr> connections_;
