@@ -26,13 +26,16 @@ int main(int argc, char* argv[])
 
     boost::thread_group threads;
 
+    size_t concurr_num = boost::thread::hardware_concurrency();
+    BOOST_LOG_T(info) << "System hardware_concurrency: " << concurr_num;
+
     try
     {
         BOOST_LOG_T(info) << "Server Runing At:" << ip_addr << ":" << srv_port;
         BOOST_LOG_T(info) << "DocumentRoot:" << doc_root;
         //airobot::http_server srv(ip_addr, srv_port, doc_root);
         boost::shared_ptr<airobot::http_server> p_srv =
-            boost::make_shared<airobot::http_server>(ip_addr, srv_port, doc_root);
+            boost::make_shared<airobot::http_server>(ip_addr, srv_port, doc_root, concurr_num);
 
         BOOST_LOG_T(info) << "Backend Server Runing At:" << ip_addr << ":" << back_port;
         //airobot::backend_server backend_srv(ip_addr, back_port);

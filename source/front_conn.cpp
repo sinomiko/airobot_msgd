@@ -7,6 +7,7 @@
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
+#include <boost/thread.hpp>
 #include <boost/algorithm/string.hpp>
 
 namespace airobot {
@@ -16,6 +17,7 @@ namespace http_stat = http_proto::status;
 
 front_conn::front_conn(boost::shared_ptr<ip::tcp::socket> p_sock,
                        http_server& server):
+    strand_(server.io_service_),
     connection(p_sock),
     parser_(),
     server_(server)
@@ -28,6 +30,44 @@ void front_conn::stop()
 {
     //server_.set_session_id(shared_from_this(), (int64_t)-1);
     set_stats(conn_pending);
+}
+
+
+// 改写基类的读写
+void front_conn::do_read()
+{
+    if (get_stats() != conn_working)
+    {
+        BOOST_LOG_T(error) << "SOCK STATUS: " << get_stats();
+        return;
+    }
+
+    BOOST_LOG_T(info) << "strand read... in " << boost::this_thread::get_id(); 
+    p_sock_->async_read_some(buffer(*p_buffer_),
+                             strand_.wrap(
+                                boost::bind(&front_conn::read_handler,
+                                  this,
+                                  boost::asio::placeholders::error,
+                                  boost::asio::placeholders::bytes_transferred)));
+    return;
+}
+
+void front_conn::do_write()
+{
+    if (get_stats() != conn_working)
+    {
+        BOOST_LOG_T(error) << "SOCK STATUS: " << get_stats();
+        return;
+    }
+
+    BOOST_LOG_T(info) << "strand write... in " << boost::this_thread::get_id(); 
+    p_sock_->async_write_some(buffer(*p_write_),
+                              strand_.wrap(
+                                boost::bind(&front_conn::write_handler,
+                                  this,
+                                  boost::asio::placeholders::error,
+                                  boost::asio::placeholders::bytes_transferred)));
+    return;
 }
 
 
@@ -81,7 +121,7 @@ void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_
                            reply::fixed_reply_ok.c_str(), 
                            reply::fixed_reply_ok.size()+1 );
 
-                    goto ok_return;
+                    goto write_return;
                 }
                 if (server_.request_session_id(shared_from_this()) == 0) 
                 {
@@ -99,17 +139,16 @@ void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_
 
                     server_.push_backend(site_id, body.c_str(), body.size()+1);
 
-                    memcpy(p_write_->data(), 
-                           reply::fixed_reply_ok.c_str(), 
+                    memcpy(p_write_->data(), reply::fixed_reply_ok.c_str(), 
                            reply::fixed_reply_ok.size()+1 );
 
-                    goto ok_return;
+                    goto write_return;
                 }
                 else if (json_parsed["msg_type"].uint64_value() == 1)
                 {
                     // TODO: hold connection
 
-                    goto ok_no_return;
+                    goto read_return;
                 }
             }
         }
