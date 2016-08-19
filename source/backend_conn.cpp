@@ -45,6 +45,9 @@ void backend_conn::read_handler(const boost::system::error_code &ec, size_t byte
         BOOST_LOG_T(error) <<  "READ ERROR FOUND!";
         p_sock_->close();
         set_stats(conn_error);
+
+        // maybe we can delete ourself from connection container
+        // directly here.
     }
 
 ok_no_return:

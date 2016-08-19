@@ -1,5 +1,10 @@
 airobot_msgd
 
+[![Language](https://img.shields.io/badge/Language-GCC-green.svg)](https://gcc.gnu.org/) 
+[![Author](https://img.shields.io/badge/author-Nicol%20TAO-blue.svg)](https://taozj.org/) 
+[![License](https://img.shields.io/badge/license-BSD-red.svg)](http://yanyiwu.mit-license.org)
+
+
 This is a high-performance front message distribute system based on C++11 and boost::asio.
 
 If your production environment sounds like a front-side item used to collect all requests( in json format), and then distributes them to backend workers, after calc and process then reponse the answer backed to the hold connection, this system may great suit you. 

@@ -7,7 +7,12 @@
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
+#include <boost/algorithm/string.hpp>
+
 namespace airobot {
+
+namespace http_opts = http_proto::header_options;
+namespace http_stat = http_proto::status;
 
 front_conn::front_conn(boost::shared_ptr<ip::tcp::socket> p_sock,
                        http_server& server):
@@ -38,11 +43,34 @@ void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_
 
         if( parser_.parse_request(p_buffer_->data()) )
         {
+            if (! boost::iequals(parser_.request_option(http_opts::request_method), "POST") )
+            {
+                BOOST_LOG_T(error) << "Invalid request method: " << parser_.request_option(http_opts::request_method);
+                memcpy(p_write_->data(), reply::fixed_reply_bad_request.c_str(), 
+                       reply::fixed_reply_bad_request.size()+1);
+                goto write_return;
+            }
+
+            if (! boost::iequals(parser_.request_option(http_opts::request_uri), "/ailaw") &&
+                ! boost::iequals(parser_.request_option(http_opts::request_uri), "/ailaw/") ) 
+            {       
+                BOOST_LOG_T(error) << "Invalid request uri: " << parser_.request_option(http_opts::request_uri);
+                memcpy(p_write_->data(), reply::fixed_reply_not_found.c_str(), 
+                       reply::fixed_reply_not_found.size()+1);
+                goto write_return;
+            }
+
             string body = parser_.request_option(http_proto::header_options::request_body);
             if (body != "")
             {
                 string json_err;
                 auto json_parsed = json11::Json::parse(body, json_err);
+                if (!json_err.empty())
+                {
+                    BOOST_LOG_T(error) << "JSON parse error!";
+                    goto error_return;
+                }
+
                 uint64_t session_id = (uint64_t)json_parsed["session_id"].uint64_value();
                 uint64_t site_id = (uint64_t)json_parsed["site_id"].uint64_value();
 
@@ -93,14 +121,14 @@ void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_
         return;
     }
 
-    memcpy(p_write_->data(), 
-           reply::fixed_reply_error.c_str(), 
+error_return:
+    memcpy(p_write_->data(), reply::fixed_reply_error.c_str(), 
            reply::fixed_reply_error.size()+1);
 
-ok_return:
+write_return:
     do_write();
 
-ok_no_return:
+read_return:
     do_read();
 
     return;
