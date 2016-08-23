@@ -68,4 +68,10 @@ void connection::fill_and_send(const char* data, size_t len)
     do_write();
 }
 
+void connection::~connection()
+{
+    p_sock_->close();
+    set_stats(conn_error); 
+}
+
 }
