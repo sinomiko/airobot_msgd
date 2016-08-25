@@ -15,16 +15,18 @@ connection::connection(boost::shared_ptr<ip::tcp::socket> p_sock):
     p_sock_(p_sock),
     stats_(conn_pending)
 {
-    p_buffer_ = boost::make_shared<std::vector<char> >(16*1024, 0);
-    p_write_  = boost::make_shared<std::vector<char> >(16*1024, 0);
+    r_size_ = 0;
+    w_size_ = 0;
+    p_buffer_ = boost::make_shared<std::vector<char> >(32*1024, 0);
+    p_write_  = boost::make_shared<std::vector<char> >(32*1024, 0);
 }
 
 void connection::start()
 {
     /**
-     * ÕâÀïÐèÒª×¢ÒâµÄÊÇ£¬Èç¹ûdo_read()²»ÊÇÐéº¯Êý£¬¶øÅÉÉúÀàÖ»ÊÇ¼òµ¥µÄ¸²¸Ç£¬ 
-     * ÄÇÃ´ÔÚaccept¡¡handlerÖÐµ÷ÓÃµÄnew_c->start()»áµ¼ÖÂÕâÀï»áµ÷ÓÃ»ùÀà 
-     * °æ±¾µÄdo_read 
+     * è¿™é‡Œéœ€è¦æ³¨æ„çš„æ˜¯ï¼Œå¦‚æžœdo_read()ä¸æ˜¯è™šå‡½æ•°ï¼Œè€Œæ´¾ç”Ÿç±»åªæ˜¯ç®€å•çš„è¦†ç›–ï¼Œ 
+     * é‚£ä¹ˆåœ¨acceptã€€handlerä¸­è°ƒç”¨çš„new_c->start()ä¼šå¯¼è‡´è¿™é‡Œä¼šè°ƒç”¨åŸºç±» 
+     * ç‰ˆæœ¬çš„do_read 
      */
     set_stats(conn_working);
     do_read();
@@ -43,6 +45,15 @@ void connection::do_read()
                                   this,
                                   boost::asio::placeholders::error,
                                   boost::asio::placeholders::bytes_transferred));
+#if 0
+    // çº¿ç¨‹æ± å¤šçº¿ç¨‹è®¿é—®io_serviceæ¨¡åž‹
+    p_sock_->async_read_some(buffer(*p_buffer_),
+                             strand_.wrap(
+                                boost::bind(&front_conn::read_handler,
+                                  this,
+                                  boost::asio::placeholders::error,
+                                  boost::asio::placeholders::bytes_transferred)));
+#endif
 }
 
 void connection::do_write()
@@ -64,13 +75,36 @@ void connection::fill_and_send(const char* data, size_t len)
 {
     assert(data && len);
     memcpy(p_write_->data(), data, len);
+    w_size_ = len;
 
     do_write();
 }
 
-void connection::~connection()
+void connection::fill_for_http(const char* data, size_t len, const string& status = http_proto::status::ok)
 {
-    p_sock_->close();
+    assert(data && len);
+
+    string enc = reply::reply_generate(data, len, status);
+    memcpy(p_write_->data(), enc.c_str(), enc.size()+1);
+    w_size_ = enc.size() + 1;
+
+    return;
+}
+
+void connection::fill_for_http(const string& str, const string& status = http_proto::status::ok)
+{
+    string enc =
+        reply::reply_generate(str, status);
+    memcpy(p_write_->data(), enc.c_str(), enc.size()+1);
+
+    w_size_ = enc.size() + 1;
+
+    return;
+}
+
+
+connection::~connection()
+{
     set_stats(conn_error); 
 }
 

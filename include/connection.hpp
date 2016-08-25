@@ -33,13 +33,15 @@ public:
     /// Construct a connection with the given socket.
     explicit connection(boost::shared_ptr<ip::tcp::socket> p_sock);
 
-    void start();
+    virtual void start();
     virtual void stop() = 0;
 
     enum connection_stats get_stats() { return stats_; }
     void set_stats(enum connection_stats stat) { stats_ = stat; }
 
     void fill_and_send(const char* data, size_t len);
+    void fill_for_http(const char* data, size_t len, const string& status);
+    void fill_for_http(const string& str, const string& status);
 
 protected:
     // 异步IO
@@ -50,6 +52,10 @@ protected:
     virtual void write_handler(const boost::system::error_code &ec, std::size_t bytes_transferred) = 0;
 
     boost::shared_ptr<ip::tcp::socket> p_sock_;
+
+    // 读写的有效负载记录
+    size_t r_size_;
+    size_t w_size_;
     boost::shared_ptr<std::vector<char> > p_buffer_;
     boost::shared_ptr<std::vector<char> > p_write_;
 

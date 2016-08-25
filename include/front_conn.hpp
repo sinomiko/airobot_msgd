@@ -28,15 +28,28 @@ public:
     /// Construct a connection with the given socket.
     front_conn(boost::shared_ptr<ip::tcp::socket> p_sock, http_server& server);
 
-    void stop() override;
-    virtual void do_read() override;
+    virtual void start() override;
+    virtual void stop() override;
+    virtual void do_read() override  { /* Not Permit */ abort(); }
     virtual void do_write() override;
-    virtual void read_handler(const boost::system::error_code &ec, std::size_t bytes_transferred) override; 
+
+    void do_read_head();
+    void do_read_body();
+
+    void read_head_handler(const boost::system::error_code &ec, std::size_t bytes_transferred); 
+    void read_body_handler(const boost::system::error_code &ec, std::size_t bytes_transferred); 
+    virtual void read_handler(const boost::system::error_code& ec, std::size_t bytes_transferred) override 
+    { /* Not Permit */ abort(); }
     virtual void write_handler(const boost::system::error_code &ec, std::size_t bytes_transferred) override; 
 
     virtual ~front_conn() { BOOST_LOG_T(debug) << "FRONT SOCKET RELEASED!!!"; }
 
     void notify_conn_error();
+
+
+private:
+    // 用于读取HTTP的头部使用
+    boost::asio::streambuf request_;   // client request_ read
 
 private:
     http_parser parser_;

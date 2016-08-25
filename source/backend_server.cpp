@@ -1,6 +1,7 @@
 #include "backend_server.hpp"
 #include "http_server.hpp"
 #include "front_conn.hpp"
+#include "http_proto.hpp"
 
 #include <boost/format.hpp>
 
@@ -71,7 +72,8 @@ void backend_server::push_front(uint64_t session_id, const char* dat, size_t len
     if (ptr == nullptr)
         return;
 
-    ptr->fill_and_send(dat, len);
+    ptr->fill_for_http(dat, len, http_proto::status::ok);
+    ptr->do_write();
 
     return;
 }

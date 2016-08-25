@@ -1,6 +1,7 @@
 #include "front_conn.hpp"
 #include "reply.hpp"
 #include "http_server.hpp"
+#include "http_proto.hpp"
 #include "json11.hpp"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -22,8 +23,19 @@ front_conn::front_conn(boost::shared_ptr<ip::tcp::socket> p_sock,
     parser_(),
     server_(server)
 {
-    p_buffer_ = boost::make_shared<std::vector<char> >(16*1024, 0);
-    p_write_  = boost::make_shared<std::vector<char> >(16*1024, 0); 
+    // p_buffer_ & p_write_ 
+    // already allocated @ connection
+}
+
+void front_conn::start()
+{
+    /**
+     * 这里需要注意的是，如果do_read()不是虚函数，而派生类只是简单的覆盖，
+     * 那么在accept　handler中调用的new_c->start()会导致这里会调用基类
+     * 版本的do_read
+     */
+    set_stats(conn_working);
+    do_read_head();
 }
 
 void front_conn::stop()
@@ -33,8 +45,7 @@ void front_conn::stop()
 }
 
 
-// 改写基类的读写
-void front_conn::do_read()
+void front_conn::do_read_head()
 {
     if (get_stats() != conn_working)
     {
@@ -43,9 +54,32 @@ void front_conn::do_read()
     }
 
     BOOST_LOG_T(info) << "strand read... in " << boost::this_thread::get_id(); 
-    p_sock_->async_read_some(buffer(*p_buffer_),
+    async_read_until(*p_sock_, request_,
+                             "\r\n\r\n",
                              strand_.wrap(
-                                boost::bind(&front_conn::read_handler,
+                                 boost::bind(&front_conn::read_head_handler,
+                                     this,
+                                     boost::asio::placeholders::error,
+                                     boost::asio::placeholders::bytes_transferred)));
+    return;
+}
+
+
+void front_conn::do_read_body()
+{
+    if (get_stats() != conn_working)
+    {
+        BOOST_LOG_T(error) << "SOCK STATUS: " << get_stats();
+        return;
+    }
+
+    size_t len = ::atoi(parser_.request_option(http_opts::content_length).c_str());
+
+    BOOST_LOG_T(info) << "strand read... in " << boost::this_thread::get_id();
+    async_read(*p_sock_, buffer(p_buffer_->data() + r_size_, len - r_size_),
+                    boost::asio::transfer_at_least(len - r_size_), 
+                             strand_.wrap(
+                                 boost::bind(&front_conn::read_body_handler,
                                   this,
                                   boost::asio::placeholders::error,
                                   boost::asio::placeholders::bytes_transferred)));
@@ -61,7 +95,8 @@ void front_conn::do_write()
     }
 
     BOOST_LOG_T(info) << "strand write... in " << boost::this_thread::get_id(); 
-    p_sock_->async_write_some(buffer(*p_write_),
+    async_write(*p_sock_, buffer(*p_write_, w_size_),
+                    boost::asio::transfer_exactly(w_size_),
                               strand_.wrap(
                                 boost::bind(&front_conn::write_handler,
                                   this,
@@ -70,87 +105,70 @@ void front_conn::do_write()
     return;
 }
 
-
-void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_transferred)
+void front_conn::read_head_handler(const boost::system::error_code& ec, size_t bytes_transferred)
 {
     if (!ec && bytes_transferred) 
     {
-        //cout << &(*p_buffer_)[0] << endl;
+        std::string head_str (boost::asio::buffers_begin(request_.data()), 
+                              boost::asio::buffers_begin(request_.data()) + request_.size());
 
-        // read more
-        //string ret = reply::reply_generate(string(&(*p_buffer_)[0]), http_proto::status::ok); 
-        //string ret = reply::reply_generate("<html><body><p>Hello World!</p></body></html>");
-
-        if( parser_.parse_request(p_buffer_->data()) )
+        request_.consume(bytes_transferred); // skip the head
+        if (parser_.parse_request(head_str.c_str()))
         {
             if (! boost::iequals(parser_.request_option(http_opts::request_method), "POST") )
             {
                 BOOST_LOG_T(error) << "Invalid request method: " << parser_.request_option(http_opts::request_method);
-                memcpy(p_write_->data(), reply::fixed_reply_bad_request.c_str(), 
-                       reply::fixed_reply_bad_request.size()+1);
+                fill_for_http(http_proto::content_bad_request, http_proto::status::bad_request);
                 goto write_return;
             }
 
-            if (! boost::iequals(parser_.request_option(http_opts::request_uri), "/ailaw") &&
-                ! boost::iequals(parser_.request_option(http_opts::request_uri), "/ailaw/") ) 
+            if ( boost::iequals(parser_.request_option(http_opts::request_uri), "/aa") ||
+                 boost::iequals(parser_.request_option(http_opts::request_uri), "/bb") ||
+                 boost::iequals(parser_.request_option(http_opts::request_uri), "/cc") )
+            {
+                size_t len = ::atoi(parser_.request_option(http_opts::content_length).c_str());
+                r_size_ = 0;
+
+                // first async_read_until may read more additional data, if so
+                // then move additional data possible
+                if( request_.size() )
+                {
+                    r_size_ = request_.size();
+                    std::string additional (boost::asio::buffers_begin(request_.data()), 
+                              boost::asio::buffers_begin(request_.data()) + r_size_);
+                    memcpy(p_buffer_->data(), additional.c_str(), r_size_ );
+                    request_.consume(r_size_); // skip the head
+                }
+
+                // normally, we will return these 2 cases
+                if (r_size_ < len)
+                {
+                    // need to read more data
+                    do_read_body();
+                    return;
+                }
+                else
+                {
+                    // call the process callback directly
+                    boost::system::error_code ec;
+                    read_body_handler(ec, r_size_);
+                    return;
+                }
+            }
+            else
             {       
                 BOOST_LOG_T(error) << "Invalid request uri: " << parser_.request_option(http_opts::request_uri);
-                memcpy(p_write_->data(), reply::fixed_reply_not_found.c_str(), 
-                       reply::fixed_reply_not_found.size()+1);
+                fill_for_http(http_proto::content_not_found, http_proto::status::not_found); 
                 goto write_return;
             }
 
-            string body = parser_.request_option(http_proto::header_options::request_body);
-            if (body != "")
+            // default, OK
+            goto write_return;
+        }
+        else
             {
-                string json_err;
-                auto json_parsed = json11::Json::parse(body, json_err);
-                if (!json_err.empty())
-                {
-                    BOOST_LOG_T(error) << "JSON parse error!";
-                    goto error_return;
-                }
-
-                uint64_t session_id = (uint64_t)json_parsed["session_id"].uint64_value();
-                uint64_t site_id = (uint64_t)json_parsed["site_id"].uint64_value();
-
-                if (session_id == 0 || site_id == 0) 
-                {
-                    cout << "SESSSION == 0, SITE_ID == 0" << endl;
-                    memcpy(p_write_->data(), 
-                           reply::fixed_reply_ok.c_str(), 
-                           reply::fixed_reply_ok.size()+1 );
-
-                    goto write_return;
-                }
-                if (server_.request_session_id(shared_from_this()) == 0) 
-                {
-                    server_.set_session_id(shared_from_this(), session_id);
-#if 0
-                    cout << server_.request_session_id(shared_from_this()) << endl;
-                    assert (shared_from_this() == server_.request_connection(session_id));
-#endif
-                }
-
-                if (json_parsed["msg_type"].uint64_value() == 3 ||
-                    json_parsed["msg_type"].uint64_value() == 4) 
-                {
-                    // TODO: 转发到后台
-
-                    server_.push_backend(site_id, body.c_str(), body.size()+1);
-
-                    memcpy(p_write_->data(), reply::fixed_reply_ok.c_str(), 
-                           reply::fixed_reply_ok.size()+1 );
-
-                    goto write_return;
-                }
-                else if (json_parsed["msg_type"].uint64_value() == 1)
-                {
-                    // TODO: hold connection
-
-                    goto read_return;
-                }
-            }
+            BOOST_LOG_T(error) << "Parse request error: " << head_str << endl;
+            goto error_return;
         }
     }
     else if (ec != boost::asio::error::operation_aborted)
@@ -161,14 +179,89 @@ void front_conn::read_handler(const boost::system::error_code& ec, size_t bytes_
     }
 
 error_return:
-    memcpy(p_write_->data(), reply::fixed_reply_error.c_str(), 
-           reply::fixed_reply_error.size()+1);
+    fill_for_http(http_proto::content_error, http_proto::status::internal_server_error); 
 
 write_return:
     do_write();
 
-read_return:
-    do_read();
+    // if error, we will not read anymore
+    // notify_conn_error();
+
+    return;
+}
+
+
+void front_conn::read_body_handler(const boost::system::error_code& ec, size_t bytes_transferred)
+{
+    if (!ec && bytes_transferred)
+    {
+
+        size_t len = ::atoi(parser_.request_option(http_opts::content_length).c_str());
+        r_size_ += bytes_transferred;
+
+        if (r_size_ < len)
+        {
+            // need to read more!
+            do_read_body();
+            return;
+        }
+
+        if ( boost::iequals(parser_.request_option(http_opts::request_uri), "/aa") )
+        {
+            fill_for_http("aa", http_proto::status::ok);
+        }
+        else if ( boost::iequals(parser_.request_option(http_opts::request_uri), "/bb") )
+        {
+            // 假设bb的请求转发到后台
+
+            string body = string(p_buffer_->data(), r_size_);
+            string json_err;
+            auto json_parsed = json11::Json::parse(body, json_err);
+
+            if (!json_err.empty())
+            {
+                BOOST_LOG_T(error) << "JSON parse error: " << body;
+                fill_for_http("bb_ret", http_proto::status::ok);
+                goto write_return;
+            }
+
+            uint64_t session_id = (uint64_t)json_parsed["session_id"].uint64_value();
+            uint64_t site_id = (uint64_t)json_parsed["site_id"].uint64_value();
+
+            cout << "request info: " << session_id << " " << site_id << endl;
+            server_.push_backend(site_id, body.c_str(), body.size()+1);
+
+            // 后台的返回
+            fill_for_http("bb_ret", http_proto::status::ok);
+        }
+        else if ( boost::iequals(parser_.request_option(http_opts::request_uri), "/cc") )
+        {
+            fill_for_http("cc", http_proto::status::ok);
+        }
+        else
+        {
+            BOOST_LOG_T(error) << "Invalid request uri: " << parser_.request_option(http_opts::request_uri);
+            fill_for_http(http_proto::content_not_found, http_proto::status::not_found); 
+            goto write_return;
+        }
+
+        // default, OK
+        goto write_return;
+    }
+    else if (ec != boost::asio::error::operation_aborted)
+    {
+        BOOST_LOG_T(error) << "READ ERROR FOUND: " << ec;
+        notify_conn_error();
+        return;
+    }
+
+error_return:
+    fill_for_http(http_proto::content_error, http_proto::status::internal_server_error); 
+
+write_return:
+    do_write();
+
+    do_read_head();
 
     return;
 }
@@ -178,14 +271,12 @@ void front_conn::write_handler(const boost::system::error_code& ec, size_t bytes
 {
     if (!ec && bytes_transferred) 
     {
-        //cout << "WRITE OK!" << endl;
-
-        //不会主动调读的
-        //do_write();
+        assert(bytes_transferred == w_size_);
+        w_size_ = 0;
     }
     else if (ec != boost::asio::error::operation_aborted)
     {
-        BOOST_LOG_T(error) << "WRITE ERROR FOUND!";
+        BOOST_LOG_T(error) << "WRITE ERROR FOUND:" << ec;
         notify_conn_error();
     }
 }
@@ -195,7 +286,8 @@ void front_conn::notify_conn_error()
 {
     {
         boost::lock_guard<boost::mutex> lock(server_.conn_notify_mutex); 
-        p_sock_->close();
+        r_size_ = 0;
+        w_size_ = 0;
         set_stats(conn_error);
     }
     server_.conn_notify.notify_one();
