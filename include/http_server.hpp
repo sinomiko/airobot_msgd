@@ -4,6 +4,7 @@
 #include "general.hpp"
 #include <boost/bind.hpp>
 #include <set>
+#include <mutex>
 
 #include "front_conn.hpp"
 
@@ -72,6 +73,7 @@ private:
                      boost::shared_ptr<backend_server> p_backend_srv);
 
     front_conn_type front_conns_;
+    std::mutex      front_conns_mutex_;
     //std::set<connection_ptr> connections_;
     //std::map<unsigned long long session_id, connection_ptr> connections_;
 

@@ -27,7 +27,9 @@ class reply
 public:
     reply() = delete;
 
-
+    /**
+     * 由于最终的底层都是调用c_str()发送的，所以这里不添加额外的字符
+     */
     static string reply_generate(const string& content, const string& stat_str)
     {
         std::vector<header> headers(6);

@@ -17,6 +17,7 @@ connection::connection(boost::shared_ptr<ip::tcp::socket> p_sock):
 {
     r_size_ = 0;
     w_size_ = 0;
+    w_pos_  = 0;
     p_buffer_ = boost::make_shared<std::vector<char> >(32*1024, 0);
     p_write_  = boost::make_shared<std::vector<char> >(32*1024, 0);
 }
@@ -76,9 +77,11 @@ void connection::fill_and_send(const char* data, size_t len)
     assert(data && len);
     memcpy(p_write_->data(), data, len);
     w_size_ = len;
+    w_pos_  = 0;
 
     do_write();
 }
+
 
 void connection::fill_for_http(const char* data, size_t len, const string& status = http_proto::status::ok)
 {
@@ -86,7 +89,9 @@ void connection::fill_for_http(const char* data, size_t len, const string& statu
 
     string enc = reply::reply_generate(data, len, status);
     memcpy(p_write_->data(), enc.c_str(), enc.size()+1);
+
     w_size_ = enc.size() + 1;
+    w_pos_  = 0;
 
     return;
 }
@@ -98,6 +103,7 @@ void connection::fill_for_http(const string& str, const string& status = http_pr
     memcpy(p_write_->data(), enc.c_str(), enc.size()+1);
 
     w_size_ = enc.size() + 1;
+    w_pos_  = 0;
 
     return;
 }
