@@ -1,8 +1,8 @@
 DEBUG ?= 1
 CC = gcc
-CCFLAGS = -g -O2 -std=gnu99 
+CCFLAGS = -g -O0 -std=gnu99 
 CXX = g++
-CXXFLAGS = -g -O2 -std=c++11
+CXXFLAGS = -g -O0 -std=c++11
 PACKAGE = airobot_msgd
 PACKAGE_NAME = $(PACKAGE)
 PACKAGE_STRING = $(PACKAGE_NAME)1.0
@@ -11,6 +11,7 @@ SHELL = /bin/bash
 VERSION = 1.0
 SRC_DIRS = ./source
 EXTRAFLAGS = -I./include $(shell mysql_config --cflags --libs) -DBOOST_LOG_DYN_LINK -lboost_system -lboost_thread-mt -lboost_date_time -lboost_regex -lboost_log -lboost_log_setup
+EXTRAFLAGS +=  -Wall -Wextra -Werror -Wconversion -Wno-unused-parameter -Wold-style-cast -Woverloaded-virtual -Wpointer-arith -Wshadow -Wwrite-strings -march=native
 
 OBJDIR = ./obj
 

@@ -20,9 +20,10 @@ http_server::http_server(const std::string& address, unsigned short port,
     io_service_(),
     ep_(ip::tcp::endpoint(ip::address::from_string(address), port)),
     acceptor_(io_service_, ep_),
+    concurr_sz_(c_cz*2),
     front_conns_(),
-    backend_(nullptr),
-    concurr_sz_(c_cz)
+    front_conns_mutex_(),
+    backend_(nullptr)
 {
     acceptor_.set_option(ip::tcp::acceptor::reuse_address(true));
     acceptor_.listen();
@@ -78,7 +79,7 @@ void http_server::accept_handler(const boost::system::error_code& ec, socket_ptr
 
     {
         std::lock_guard<std::mutex> lock(front_conns_mutex_);
-        front_conns_.left.insert(std::make_pair(new_c, (uint64_t)0));
+        front_conns_.left.insert(std::make_pair(new_c, 0ULL));
     }
     new_c->start();
 
@@ -93,7 +94,7 @@ int64_t http_server::request_session_id(front_conn_ptr ptr)
 
     auto p = front_conns_.left.find(ptr);
     if (p == front_conns_.left.end())
-        return (int64_t)-1;
+        return -1LL;
 
     return p->second;
 }
@@ -114,7 +115,7 @@ bool http_server::set_session_id(front_conn_ptr ptr, uint64_t session_id)
 front_conn_ptr http_server::request_connection(uint64_t session_id)
 {
     assert(session_id != 0);
-    assert((int64_t)session_id != -1);
+    assert(static_cast<int64_t>(session_id) != -1);
 
     std::lock_guard<std::mutex> lock(front_conns_mutex_);
 
@@ -169,9 +170,9 @@ void http_server::show_conns_info(bool verbose)
         { err_cnt++;  if (verbose) cout << "error" ; }
 
         cout << endl << "\t";
-        if ((int64_t)const_iter->second == 0)
+        if (static_cast<int64_t>(const_iter->second) == 0)
         { zero_cnt++;   if (verbose) cout << "session: 0" << endl; }
-        if ((int64_t)const_iter->second == -1)
+        else if (static_cast<int64_t>(const_iter->second) == -1)
         { negone_cnt++; if (verbose) cout << "session: -1" << endl; }
         else
         { normal_cnt++; if (verbose) cout << "session: " << const_iter->second << endl; }

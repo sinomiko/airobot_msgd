@@ -18,10 +18,10 @@ namespace http_stat = http_proto::status;
 
 front_conn::front_conn(boost::shared_ptr<ip::tcp::socket> p_sock,
                        http_server& server):
-    strand_(server.io_service_),
     connection(p_sock),
     parser_(),
-    server_(server)
+    server_(server),
+    strand_(server.io_service_)
 {
     // p_buffer_ & p_write_ 
     // already allocated @ connection
@@ -168,7 +168,6 @@ void front_conn::read_head_handler(const boost::system::error_code& ec, size_t b
                 else
                 {
                     // call the process callback directly
-                    boost::system::error_code ec;
                     read_body_handler(ec, additional_size);   // already updated r_size_
                     return;
                 }
@@ -251,8 +250,8 @@ void front_conn::read_body_handler(const boost::system::error_code& ec, size_t b
                 goto write_return;
             }
 
-            uint64_t session_id = (uint64_t)json_parsed["session_id"].uint64_value();
-            uint64_t site_id = (uint64_t)json_parsed["site_id"].uint64_value();
+            uint64_t session_id = static_cast<uint64_t>(json_parsed["session_id"].uint64_value());
+            uint64_t site_id = static_cast<uint64_t>(json_parsed["site_id"].uint64_value());
 
             cout << "request info: " << session_id << " " << site_id << endl;
             server_.push_backend(site_id, body.c_str(), body.size()+1);
@@ -286,7 +285,6 @@ void front_conn::read_body_handler(const boost::system::error_code& ec, size_t b
         return;
     }
 
-error_return:
     fill_for_http(http_proto::content_error, http_proto::status::internal_server_error); 
 
 write_return:

@@ -30,8 +30,8 @@ void backend_conn::read_handler(const boost::system::error_code &ec, size_t byte
         //cout << p_buffer_->data() << endl;
         string json_err;
         auto json_parsed = json11::Json::parse(p_buffer_->data(), json_err);
-        uint64_t session_id = (uint64_t)json_parsed["session_id"].uint64_value();
-        uint64_t site_id = (uint64_t)json_parsed["site_id"].uint64_value();
+        uint64_t session_id = static_cast<uint64_t>(json_parsed["session_id"].uint64_value());
+        uint64_t site_id = static_cast<uint64_t>(json_parsed["site_id"].uint64_value());
 
         if (session_id == 0 || site_id == 0) 
             goto ok_no_return;
