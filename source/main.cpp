@@ -1,6 +1,7 @@
 #include "general.hpp"
 
-#include <http_server.hpp>
+#include "http_server.hpp"
+#include "co_worker.hpp"
 #include <backend_server.hpp>
 
 #include <boost/thread.hpp>
@@ -36,9 +37,11 @@ int main(int argc, char* argv[])
     {
         BOOST_LOG_T(info) << "Server Runing At:" << ip_addr << ":" << srv_port;
         BOOST_LOG_T(info) << "DocumentRoot:" << doc_root;
-        //airobot::http_server srv(ip_addr, srv_port, doc_root);
+
         boost::shared_ptr<airobot::http_server> p_srv =
             boost::make_shared<airobot::http_server>(ip_addr, srv_port, doc_root, concurr_num);
+        boost::shared_ptr<airobot::co_worker>   p_co_worker =
+            boost::make_shared<airobot::co_worker>();
 
         BOOST_LOG_T(info) << "Backend Server Runing At:" << ip_addr << ":" << back_port;
         //airobot::backend_server backend_srv(ip_addr, back_port);
@@ -50,14 +53,20 @@ int main(int argc, char* argv[])
 
         threads.create_thread(
             [&p_srv]{
-            cerr << "ThreadID: " <<boost::this_thread::get_id()<<endl;
+            cerr << "Main Front ThreadID: " <<boost::this_thread::get_id()<<endl;
             p_srv->run();
         });
 
         threads.create_thread(
             [&p_backend_srv]{
-            cerr << "ThreadID: " <<boost::this_thread::get_id()<<endl;
+            cerr << "Backend ThreadID: " <<boost::this_thread::get_id()<<endl;
             p_backend_srv->run();
+        });
+
+        threads.create_thread(
+            [&p_co_worker]{
+            cerr<< "CO WORKER ThreadID: " << boost::this_thread::get_id() << endl;
+            p_co_worker->run();
         });
 
         threads.create_thread(boost::bind(airobot::manage_thread, p_srv, p_backend_srv));
