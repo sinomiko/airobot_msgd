@@ -135,11 +135,12 @@ void front_conn::read_head_handler(const boost::system::error_code& ec, size_t b
                 size_t len = ::atoi(parser_.request_option(http_opts::content_length).c_str());
                 r_size_ = 0;
                 size_t additional_size = request_.size();
+                assert( additional_size <= len );
 
-                if (additional_size > p_buffer_->size())
+                if (len + 1 > p_buffer_->size())
                 {
-                    BOOST_LOG_T(error) << "We can not support request body size: " << len << endl;
-                    goto error_return; 
+                    BOOST_LOG_T(info) << "relarge receive buffer size to: " << (len + 256) << endl;
+                    p_buffer_->resize(len + 256);
                 }
 
                 // first async_read_until may read more additional data, if so
@@ -190,7 +191,7 @@ void front_conn::read_head_handler(const boost::system::error_code& ec, size_t b
         BOOST_LOG_T(error) << "READ ERROR FOUND!";
 
         boost::system::error_code ignored_ec;
-        p_sock_->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+        p_sock_->shutdown(boost::asio::ip::tcp::socket::shutdown_receive, ignored_ec);
         p_sock_->cancel();
 
         notify_conn_error();
@@ -275,7 +276,7 @@ void front_conn::read_body_handler(const boost::system::error_code& ec, size_t b
         BOOST_LOG_T(error) << "READ ERROR FOUND: " << ec;
 
         boost::system::error_code ignored_ec;
-        p_sock_->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+        p_sock_->shutdown(boost::asio::ip::tcp::socket::shutdown_receive, ignored_ec);
         p_sock_->cancel();
 
         notify_conn_error();
@@ -318,7 +319,7 @@ void front_conn::write_handler(const boost::system::error_code& ec, size_t bytes
         BOOST_LOG_T(error) << "WRITE ERROR FOUND:" << ec;
 
         boost::system::error_code ignored_ec;
-        p_sock_->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+        p_sock_->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ignored_ec);
         p_sock_->cancel();
 
         notify_conn_error();
