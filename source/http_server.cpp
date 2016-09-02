@@ -42,6 +42,12 @@ namespace http_stats = http_proto::status;
 
 void http_server::run()
 {
+    for (size_t i=0; i < timing_wheel_.capacity(); ++i)
+    {
+        std::set<front_conn_weak> empty;
+        timing_wheel_.push_back(empty);
+    }
+
     backend_ = daemons_->backend_server_;
     assert(backend_);
 
@@ -102,7 +108,7 @@ void http_server::accept_handler(const boost::system::error_code& ec, socket_ptr
         front_conns_.left.insert(std::make_pair(new_c, 0ULL));
         current_conns_cnt_ ++;
 
-        // 登记弱引用
+        // 登记弱引用，无锁结构
         timing_wheel_.back().insert(front_conn_weak(new_c));
     }
     new_c->start();
