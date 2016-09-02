@@ -45,6 +45,7 @@ void connection::do_read()
         return;
     }
 
+    touch_sock_time();
     p_sock_->async_read_some(buffer(*p_buffer_),
                              boost::bind(&connection::read_handler,
                                   this,
@@ -69,6 +70,7 @@ void connection::do_write()
         return;
     }
 
+    touch_sock_time();
     p_sock_->async_write_some(buffer(*p_write_),
                          boost::bind(&connection::write_handler,
                                   this,
