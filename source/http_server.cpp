@@ -22,8 +22,11 @@ http_server::http_server(const objects* daemons,
     ep_(ip::tcp::endpoint(ip::address::from_string(address), port)),
     acceptor_(io_service_, ep_),
     concurr_sz_(c_cz*2),
-    front_conns_(),
     front_conns_mutex_(),
+    front_conns_(),
+    max_serve_conns_cnt_(1024),
+    current_conns_cnt_(0),
+    pending_to_remove_(),
     backend_(nullptr),
     daemons_(daemons)
 {
@@ -85,6 +88,7 @@ void http_server::accept_handler(const boost::system::error_code& ec, socket_ptr
     {
         std::lock_guard<std::mutex> lock(front_conns_mutex_);
         front_conns_.left.insert(std::make_pair(new_c, 0ULL));
+        current_conns_cnt_ ++;
     }
     new_c->start();
 
@@ -191,6 +195,30 @@ void http_server::show_conns_info(bool verbose)
         % normal_cnt % zero_cnt % negone_cnt << endl;
 
     return;
+}
+
+#include <sys/resource.h>
+bool http_server::set_max_serve_conns_cnt(unsigned long long cnt)
+{
+    struct rlimit limit;
+
+    if (getrlimit(RLIMIT_NOFILE, &limit) != 0) 
+    {
+        BOOST_LOG_T(error) << "getrlimit() failed with errno:" << errno;
+        return false;
+    }
+
+    if (cnt > limit.rlim_cur)  // 并没有考虑额外占用的句柄数目
+    {
+        BOOST_LOG_T(error) << "Reach the soft_limit of nofile:" << limit.rlim_cur; 
+        return false;
+    }
+
+    max_serve_conns_cnt_ = cnt;
+    BOOST_LOG_T(info) << "Current Server Maxium Serve Count: " << max_serve_conns_cnt_;
+    BOOST_LOG_T(info) << "The limit is: " << limit.rlim_cur;
+
+    return true;
 }
 
 } // END NAMESPACE
