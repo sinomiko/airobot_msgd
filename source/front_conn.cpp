@@ -2,6 +2,7 @@
 #include "reply.hpp"
 #include "http_server.hpp"
 #include "http_proto.hpp"
+#include "co_worker.hpp"
 #include "json11.hpp"
 
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -256,8 +257,38 @@ void front_conn::read_body_handler(const boost::system::error_code& ec, size_t b
             cout << "request info: " << session_id << " " << site_id << endl;
             server_.push_backend(site_id, body.c_str(), body.size()+1);
 
-            // 后台的返回
-            fill_for_http("bb_ret", http_proto::status::ok);
+            // 后台的返回，这里模拟同步获取一个网页
+
+            ip::tcp::socket sock(p_sock_->get_io_service());
+            ip::tcp::endpoint ep(ip::address::from_string("123.125.114.144"), 80);
+            boost::system::error_code error;
+
+            class co_worker *p_worker = server_.get_co_worker();
+            sync_timed_connect(p_worker, ep , sock, 1000, error);
+
+            if (error) 
+            {
+                BOOST_LOG_T(error) << "Connect to server failed(1000ms)!";
+                return;
+            }
+
+            string reque = "GET / HTTP/1.1\r\nHost: www.baidu.com\r\nUser-Agent: airobot_msg/1.0\r\n\r\n";
+            sock.write_some(buffer(reque));   //标准HTTP请求
+
+            std::vector<char> read_buff(32*1024, 0);
+            size_t read_len = sync_timed_read_some(p_worker, sock, read_buff, 3000, error);
+            //size_t read_len = sync_read_some(sock, read_buff, error);
+            if (read_len == 0)
+            {
+                BOOST_LOG_T(info) << "Read operation returned 0!";
+                return;
+            }
+
+            BOOST_LOG_T(error) << "Transform answer from server with size: " << read_len ;
+            string ret_str(read_buff.data(), read_len);
+            ret_str = string(ret_str.c_str());
+            fill_for_http(ret_str, http_proto::status::ok);
+
         }
         else if ( boost::iequals(parser_.request_option(http_opts::request_uri), "/cc") )
         {

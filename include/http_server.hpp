@@ -32,7 +32,7 @@ public:
 
     /// Construct the server to listen on the specified TCP address and port, and
     /// serve up files from the given directory.
-    explicit http_server(const std::string& address, unsigned short port,
+    explicit http_server(const objects* daemons, const std::string& address, unsigned short port,
                     const std::string& doc_root, size_t c_cz);
 
     /// Run the server's io_service loop.
@@ -42,10 +42,7 @@ public:
     bool set_session_id(front_conn_ptr ptr, uint64_t session_id);
     front_conn_ptr request_connection(uint64_t session_id);
 
-    void set_backend(boost::shared_ptr<backend_server> ptr)
-    {
-        backend_ = ptr;
-    }
+    class co_worker* get_co_worker() { return daemons_->co_worker_; }
 
     void push_backend(uint64_t site_id, const char* dat, size_t len);
     void show_conns_info(bool verbose);
@@ -69,15 +66,15 @@ private:
     typedef boost::bimap< boost::bimaps::set_of<front_conn_ptr>,
                           boost::bimaps::multiset_of<uint64_t> > front_conn_type;
 
-    friend void manage_thread(boost::shared_ptr<http_server> p_srv,
-                     boost::shared_ptr<backend_server> p_backend_srv);
+    friend void manage_thread(const objects* daemons);
 
     front_conn_type front_conns_;
     std::mutex      front_conns_mutex_;
     //std::set<connection_ptr> connections_;
     //std::map<unsigned long long session_id, connection_ptr> connections_;
 
-    boost::shared_ptr<backend_server> backend_;
+    backend_server* backend_; //fast access
+    const objects* daemons_;  
 };
 
 } // END NAMESPACE

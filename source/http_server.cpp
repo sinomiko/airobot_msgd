@@ -15,15 +15,17 @@ namespace airobot {
 boost::condition_variable_any http_server::conn_notify;
 boost::mutex http_server::conn_notify_mutex;
 
-http_server::http_server(const std::string& address, unsigned short port,
-                    const std::string& doc_root, size_t c_cz) :
+http_server::http_server(const objects* daemons, 
+                         const std::string& address, unsigned short port,
+                         const std::string& doc_root, size_t c_cz) :
     io_service_(),
     ep_(ip::tcp::endpoint(ip::address::from_string(address), port)),
     acceptor_(io_service_, ep_),
     concurr_sz_(c_cz*2),
     front_conns_(),
     front_conns_mutex_(),
-    backend_(nullptr)
+    backend_(nullptr),
+    daemons_(daemons)
 {
     acceptor_.set_option(ip::tcp::acceptor::reuse_address(true));
     acceptor_.listen();
@@ -37,6 +39,9 @@ namespace http_stats = http_proto::status;
 
 void http_server::run()
 {
+    backend_ = daemons_->backend_server_;
+    assert(backend_);
+
     // Create a pool of threads to run all of the io_services.
     std::vector<boost::shared_ptr<boost::thread> > threads_pool;
     for (std::size_t i = 0; i < concurr_sz_; ++i) 

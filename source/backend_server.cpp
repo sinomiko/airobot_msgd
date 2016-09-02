@@ -10,13 +10,15 @@ namespace airobot {
 static boost::condition_variable conn_notify;
 static boost::mutex conn_notify_mutex;
 
-backend_server::backend_server(const std::string& address, unsigned short port) :
+backend_server::backend_server(const objects* daemons, 
+                               const std::string& address, unsigned short port) :
     io_service_(),
     ep_(ip::tcp::endpoint(ip::address::from_string(address), port)),
     acceptor_(io_service_, ep_),
     backend_conns_(),
+    check_timer_(io_service_),
     http_(nullptr),
-    check_timer_(io_service_)
+    daemons_(daemons)
 {
     acceptor_.set_option(ip::tcp::acceptor::reuse_address(true));
     acceptor_.listen();
@@ -32,6 +34,9 @@ backend_server::backend_server(const std::string& address, unsigned short port) 
 
 void backend_server::run()
 {
+    http_ = daemons_->http_server_;
+    assert(http_);
+
     io_service_.run();
 }
 

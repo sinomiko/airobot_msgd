@@ -64,11 +64,14 @@ void boost_log_init(const string filename_prefix)
     return;
 }
 
-void manage_thread(boost::shared_ptr<http_server> p_srv,
-                     boost::shared_ptr<backend_server> p_backend_srv)
+extern objects all_daemons;
+
+void manage_thread(const objects* daemons)
 {
 
     cerr<< "Manage ThreadID: " << boost::this_thread::get_id() << endl;
+    http_server* p_srv = daemons->http_server_;
+    backend_server *p_backend_srv = daemons->backend_server_;
 
     for (;;)
     {
