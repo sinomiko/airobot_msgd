@@ -263,7 +263,7 @@ void front_conn::read_body_handler(const boost::system::error_code& ec, size_t b
             // 后台的返回，这里模拟同步获取一个网页
 
             ip::tcp::socket sock(p_sock_->get_io_service());
-            ip::tcp::endpoint ep(ip::address::from_string("123.125.114.144"), 80);
+            ip::tcp::endpoint ep(ip::address::from_string("220.181.57.217"), 80);
             boost::system::error_code error;
 
             class co_worker *p_worker = server_.get_co_worker();
@@ -363,14 +363,11 @@ void front_conn::write_handler(const boost::system::error_code& ec, size_t bytes
 
 void front_conn::notify_conn_error()
 {
-    {
-        boost::lock_guard<boost::mutex> lock(server_.conn_notify_mutex); 
-        std::lock_guard<std::mutex> mutex_lock(server_.front_conns_mutex_);
-        r_size_ = 0;
-        w_size_ = 0;
-        set_stats(conn_error);
-        server_.push_to_remove(shared_from_this());
-    }
+    r_size_ = 0;
+    w_size_ = 0;
+    set_stats(conn_error);
+
+    server_.push_to_remove(shared_from_this());
     server_.conn_notify.notify_one();
 }
 
