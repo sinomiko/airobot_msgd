@@ -49,7 +49,8 @@ public:
     virtual ~front_conn() { BOOST_LOG_T(debug) << "FRONT SOCKET RELEASED!!!"; }
 
     void notify_conn_error();
-
+    void conn_wash_white();
+    void conn_reset_network(boost::shared_ptr<ip::tcp::socket> p_sock);
 
 private:
     // 用于读取HTTP的头部使用
@@ -59,7 +60,7 @@ private:
     http_parser parser_;
     http_server& server_;
 
-    boost::asio::io_service::strand strand_;
+    boost::shared_ptr<io_service::strand> strand_;
 };
 
 }

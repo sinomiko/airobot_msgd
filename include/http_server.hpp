@@ -102,6 +102,9 @@ private:
     //std::set<connection_ptr> connections_;
     //std::map<unsigned long long session_id, connection_ptr> connections_;
 
+    // 缓存空闲的front_conn对象，最大大小为max_serve_conns_cnt_的30%
+    std::vector<front_conn_ptr> cached_conns_;
+
     backend_server* backend_; //fast access
     const objects* daemons_;  
 
