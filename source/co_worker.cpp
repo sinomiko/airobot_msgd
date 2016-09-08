@@ -43,6 +43,7 @@ void co_worker::signal_handler(const boost::system::error_code& error,
 void co_worker::timed_cancel_socket(const boost::system::error_code& ec,
                                     boost::asio::deadline_timer* t, ip::tcp::socket* sock)
 {
+    boost::system::error_code ignored_ec;
     if (ec == boost::asio::error::operation_aborted)
     {
         BOOST_LOG_T(info) << "timed_cancel_socket cancelled!";
@@ -50,7 +51,7 @@ void co_worker::timed_cancel_socket(const boost::system::error_code& ec,
     }
 
     BOOST_LOG_T(info) << "timed_cancel_socket callback called!";
-    sock->shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+    sock->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
 
     return;
 }
