@@ -1,0 +1,13 @@
+[Unit]
+Description=AirobotMsgd Daemon Service
+After=network.target
+
+[Service]
+Type=simple
+User=user
+ExecStart=/home/v5kf/nginx/airobot_msgd/Debug/airobot_msgd &
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
